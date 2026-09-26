@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ folder.name }}{% endblock %}
+
+{% block content %}
+<p class="breadcrumb"><a href="{% url 'library:home' %}">资源库</a> / {{ folder.name }}</p>
+<section class="page-heading">
+    <p class="eyebrow">文件夹</p>
+    <h1>{{ folder.name }}</h1>
+    <p class="muted">{{ folder.description }}</p>
+</section>
+<div class="empty-state">
+    <span class="empty-icon" aria-hidden="true">📂</span>
+    <h2>这里还没有文件</h2>
+    <p>Phase 3 将加入文件夹和文件管理功能。</p>
+</div>
+{% endblock %}

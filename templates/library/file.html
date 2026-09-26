@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+
+{% block title %}文件详情{% endblock %}
+
+{% block content %}
+<p class="breadcrumb"><a href="{% url 'library:home' %}">资源库</a> / 文件详情</p>
+<div class="empty-state">
+    <h1>文件详情</h1>
+    <p>文件 {{ file_id }} 的元数据页面将在 Phase 3 接入。</p>
+</div>
+{% endblock %}

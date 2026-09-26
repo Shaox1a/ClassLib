@@ -1,0 +1,36 @@
+{% load static %}
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}ClassLib{% endblock %} · ClassLib</title>
+    <link rel="stylesheet" href="{% static 'css/site.css' %}">
+</head>
+<body>
+    <header class="site-header">
+        <div class="container header-inner">
+            <a class="brand" href="{% url 'library:home' %}">ClassLib</a>
+            <nav aria-label="主导航" class="main-nav">
+                <a href="{% url 'library:home' %}">资源库</a>
+                <a href="{% url 'library:search' %}">搜索</a>
+                {% if user.is_authenticated %}
+                    <span class="nav-user">{{ user.get_username }}</span>
+                    <form action="{% url 'accounts:logout' %}" method="post" class="inline-form">
+                        {% csrf_token %}
+                        <button type="submit" class="button button-link">退出</button>
+                    </form>
+                {% else %}
+                    <a class="button button-small" href="{% url 'accounts:login' %}">登录</a>
+                {% endif %}
+            </nav>
+        </div>
+    </header>
+    <main class="container main-content">
+        {% block content %}{% endblock %}
+    </main>
+    <footer class="site-footer">
+        <div class="container">ClassLib · 班级内部学习资料库</div>
+    </footer>
+</body>
+</html>
