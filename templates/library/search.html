@@ -6,15 +6,75 @@
 <section class="page-heading">
     <p class="eyebrow">资源库</p>
     <h1>搜索资料</h1>
-    <form class="search-form search-form-wide" action="{% url 'library:search' %}" method="get" role="search">
-        <label class="sr-only" for="search-query">搜索资料</label>
-        <input id="search-query" name="q" type="search" value="{{ query }}" placeholder="输入文件名或文件夹名">
+    <form class="search-filters" action="{% url 'library:search' %}" method="get" role="search">
+        <div class="filter-field filter-query">
+            <label for="search-query">关键词</label>
+            <input id="search-query" name="q" type="search" value="{{ query }}" placeholder="文件名、文件夹名或标签">
+        </div>
+        <div class="filter-field">
+            <label for="search-subject">学科</label>
+            <select id="search-subject" name="subject">
+                <option value="">全部学科</option>
+                {% for subject in subjects %}
+                    <option value="{{ subject.pk }}" {% if selected_subject.pk == subject.pk %}selected{% endif %}>{{ subject.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="filter-field">
+            <label for="search-tag">标签</label>
+            <select id="search-tag" name="tag">
+                <option value="">全部标签</option>
+                {% for item in tags %}
+                    <option value="{{ item.pk }}" {% if selected_tag.pk == item.pk %}selected{% endif %}>#{{ item.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
         <button class="button" type="submit">搜索</button>
     </form>
 </section>
+
 {% if has_searched %}
-    <div class="empty-state compact"><h2>暂无搜索结果</h2><p>Phase 4 将接入文件名、文件夹名和标签搜索。</p></div>
+    {% if folders %}
+        <section class="search-result-section" aria-labelledby="folder-results-title">
+            <h2 id="folder-results-title">文件夹 <small class="muted">{{ folders|length }}</small></h2>
+            <div class="folder-grid">
+                {% for folder in folders %}
+                    <a class="folder-card" href="{% url 'library:folder' folder.pk %}">
+                        <span class="folder-icon" aria-hidden="true">📁</span>
+                        <span><strong>{{ folder.path }}</strong><small>打开文件夹</small></span>
+                    </a>
+                {% endfor %}
+            </div>
+        </section>
+    {% endif %}
+    {% if file_page.paginator.count %}
+        <section class="search-result-section" aria-labelledby="file-results-title">
+            <h2 id="file-results-title">文件 <small class="muted">{{ file_page.paginator.count }}</small></h2>
+            <div class="file-list">
+                {% for document in file_page %}
+                    <a class="file-row" href="{% url 'library:file' document.pk %}">
+                        <span class="file-icon" aria-hidden="true">📄</span>
+                        <span class="file-main">
+                            <strong>{{ document.name }}</strong>
+                            <small>{{ document.folder.path }} · {{ document.size|filesizeformat }}{% for item in document.tags.all %} · #{{ item.name }}{% endfor %}</small>
+                        </span>
+                        <span class="file-arrow" aria-hidden="true">›</span>
+                    </a>
+                {% endfor %}
+            </div>
+            {% if file_page.has_other_pages %}
+                <nav class="pagination" aria-label="文件搜索结果分页">
+                    {% if file_page.has_previous %}<a href="?{{ filter_query }}&page={{ file_page.previous_page_number }}">上一页</a>{% endif %}
+                    <span>第 {{ file_page.number }} / {{ file_page.paginator.num_pages }} 页</span>
+                    {% if file_page.has_next %}<a href="?{{ filter_query }}&page={{ file_page.next_page_number }}">下一页</a>{% endif %}
+                </nav>
+            {% endif %}
+        </section>
+    {% endif %}
+    {% if not folders and not file_page.paginator.count %}
+        <div class="empty-state compact"><h2>没有找到匹配的资料</h2><p>试试其他关键词或筛选条件。</p></div>
+    {% endif %}
 {% else %}
-    <div class="empty-state compact"><h2>输入关键词开始搜索</h2></div>
+    <div class="empty-state compact"><h2>输入关键词或选择筛选条件</h2><p>可以按文件名、文件夹名、学科和标签查找。</p></div>
 {% endif %}
 {% endblock %}

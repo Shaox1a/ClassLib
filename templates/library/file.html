@@ -1,11 +1,38 @@
 {% extends 'base.html' %}
 
-{% block title %}文件详情{% endblock %}
+{% block title %}{{ document.name }}{% endblock %}
 
 {% block content %}
-<p class="breadcrumb"><a href="{% url 'library:home' %}">资源库</a> / 文件详情</p>
-<div class="empty-state">
-    <h1>文件详情</h1>
-    <p>文件 {{ file_id }} 的元数据页面将在 Phase 3 接入。</p>
-</div>
+<nav class="breadcrumb" aria-label="当前位置">
+    <a href="{% url 'library:home' %}">资源库</a>
+    {% for item in breadcrumbs %} / <a href="{% url 'library:folder' item.pk %}">{{ item.name }}</a>{% endfor %}
+    / {{ document.name }}
+</nav>
+<section class="detail-card">
+    <p class="eyebrow">文件详情</p>
+    <h1>{{ document.name }}</h1>
+    <dl class="file-meta">
+        <div><dt>大小</dt><dd>{{ document.size|filesizeformat }}</dd></div>
+        <div><dt>类型</dt><dd>{{ document.mime_type }}</dd></div>
+        <div><dt>上传者</dt><dd>{{ document.uploader.username }}</dd></div>
+        <div><dt>上传时间</dt><dd>{{ document.created_at|date:"Y-m-d H:i" }}</dd></div>
+        <div><dt>更新时间</dt><dd>{{ document.updated_at|date:"Y-m-d H:i" }}</dd></div>
+    </dl>
+    <div class="tag-row">
+        {% for item in document.tags.all %}
+            <a class="tag-chip" href="{% url 'library:search' %}?tag={{ item.pk }}">#{{ item.name }}</a>
+        {% empty %}
+            <span class="muted">暂无标签</span>
+        {% endfor %}
+        {% if can_manage %}<a href="{% url 'library:file_tags' document.pk %}">管理标签</a>{% endif %}
+    </div>
+    <div class="action-bar">
+        <a class="button" href="{% url 'library:file_download' document.pk %}">下载文件</a>
+        {% if can_manage %}
+            <a href="{% url 'library:file_rename' document.pk %}">重命名</a>
+            <a href="{% url 'library:file_move' document.pk %}">移动</a>
+            <a class="danger-link" href="{% url 'library:file_delete' document.pk %}">删除</a>
+        {% endif %}
+    </div>
+</section>
 {% endblock %}

@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<p class="breadcrumb"><a href="{{ back_url }}">返回</a></p>
+<section class="auth-card" aria-labelledby="form-title">
+    <h1 id="form-title">{{ title }}</h1>
+    <form method="post" {% if is_upload %}enctype="multipart/form-data"{% endif %} class="stack-form">
+        {% csrf_token %}
+        {% for field in form %}
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% for error in field.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+            {% if field.help_text %}<small class="muted">{{ field.help_text }}</small>{% endif %}
+        {% endfor %}
+        {% for error in form.non_field_errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+        <button class="button" type="submit">{{ submit_label }}</button>
+    </form>
+</section>
+{% endblock %}

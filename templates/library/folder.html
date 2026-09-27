@@ -3,15 +3,50 @@
 {% block title %}{{ folder.name }}{% endblock %}
 
 {% block content %}
-<p class="breadcrumb"><a href="{% url 'library:home' %}">资源库</a> / {{ folder.name }}</p>
+<nav class="breadcrumb" aria-label="当前位置">
+    <a href="{% url 'library:home' %}">资源库</a>
+    {% for item in breadcrumbs %} / <a href="{% url 'library:folder' item.pk %}">{{ item.name }}</a>{% endfor %}
+</nav>
 <section class="page-heading">
     <p class="eyebrow">文件夹</p>
     <h1>{{ folder.name }}</h1>
-    <p class="muted">{{ folder.description }}</p>
+    {% if can_manage %}
+        <div class="action-bar">
+            <a class="button" href="{% url 'library:folder_create_child' folder.pk %}">新建子文件夹</a>
+            <a class="button" href="{% url 'library:file_upload' folder.pk %}">上传文件</a>
+            <a href="{% url 'library:folder_rename' folder.pk %}">重命名</a>
+            <a href="{% url 'library:folder_move' folder.pk %}">移动</a>
+            <a class="danger-link" href="{% url 'library:folder_delete' folder.pk %}">删除</a>
+        </div>
+    {% endif %}
 </section>
-<div class="empty-state">
-    <span class="empty-icon" aria-hidden="true">📂</span>
-    <h2>这里还没有文件</h2>
-    <p>Phase 3 将加入文件夹和文件管理功能。</p>
-</div>
+
+{% if subfolders %}
+    <h2>子文件夹</h2>
+    <div class="folder-grid">
+        {% for child in subfolders %}
+            <a class="folder-card" href="{% url 'library:folder' child.pk %}">
+                <span class="folder-icon" aria-hidden="true">📁</span>
+                <span><strong>{{ child.name }}</strong><small>打开文件夹</small></span>
+            </a>
+        {% endfor %}
+    </div>
+{% endif %}
+
+<section class="file-section" aria-labelledby="files-title">
+    <h2 id="files-title">文件</h2>
+    {% if files %}
+        <div class="file-list">
+            {% for document in files %}
+                <a class="file-row" href="{% url 'library:file' document.pk %}">
+                    <span class="file-icon" aria-hidden="true">📄</span>
+                    <span class="file-main"><strong>{{ document.name }}</strong><small>{{ document.size|filesizeformat }} · {{ document.uploader.username }}</small></span>
+                    <span class="file-arrow" aria-hidden="true">›</span>
+                </a>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state compact"><p>这个文件夹还没有文件。</p></div>
+    {% endif %}
+</section>
 {% endblock %}

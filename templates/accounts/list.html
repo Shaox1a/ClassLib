@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+
+{% block title %}账号管理{% endblock %}
+
+{% block content %}
+<div class="section-heading">
+    <div><p class="eyebrow">管理员</p><h1>账号管理</h1></div>
+    <a class="button" href="{% url 'accounts:create' %}">创建账号</a>
+</div>
+<div class="account-list">
+    {% for account in users %}
+        <div class="account-row">
+            <div>
+                <strong>{{ account.username }}</strong>
+                <span class="muted">{{ account.get_role_display }} · {% if account.is_active %}已启用{% else %}已停用{% endif %}</span>
+            </div>
+            {% if account.role != 'admin' and not account.is_superuser %}
+                <form method="post" action="{% url 'accounts:status' account.id %}">
+                    {% csrf_token %}
+                    {% if account.is_active %}
+                        <input type="hidden" name="action" value="deactivate">
+                        <button class="button button-secondary" type="submit">停用</button>
+                    {% else %}
+                        <input type="hidden" name="action" value="activate">
+                        <button class="button" type="submit">启用</button>
+                    {% endif %}
+                </form>
+            {% endif %}
+        </div>
+    {% empty %}
+        <p class="empty-state">暂无账号。</p>
+    {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block title %}标签{% endblock %}
+
+{% block content %}
+<div class="section-heading">
+    <div><p class="eyebrow">资源库</p><h1>标签</h1></div>
+    {% if can_manage %}<a class="button" href="{% url 'library:tag_create' %}">新建标签</a>{% endif %}
+</div>
+{% if tags %}
+    <div class="account-list">
+        {% for item in tags %}
+            <div class="account-row">
+                <div>
+                    <a class="tag-chip" href="{% url 'library:search' %}?tag={{ item.pk }}">#{{ item.name }}</a>
+                    <span class="muted">{{ item.file_count }} 个文件</span>
+                </div>
+                {% if can_manage %}
+                    <div class="action-bar tag-actions">
+                        <a href="{% url 'library:tag_rename' item.pk %}">重命名</a>
+                        <a class="danger-link" href="{% url 'library:tag_delete' item.pk %}">删除</a>
+                    </div>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="empty-state"><h2>还没有标签</h2><p>教师可以创建标签，用来整理资料。</p></div>
+{% endif %}
+{% endblock %}

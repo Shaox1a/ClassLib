@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+
+{% block title %}创建账号{% endblock %}
+
+{% block content %}
+<p class="breadcrumb"><a href="{% url 'accounts:list' %}">账号管理</a> / 创建账号</p>
+<section class="auth-card" aria-labelledby="create-title">
+    <h1 id="create-title">创建账号</h1>
+    <p class="muted">为班级成员创建学生或教师账号。</p>
+    <form method="post" class="stack-form">
+        {% csrf_token %}
+        {% for field in form %}
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% for error in field.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+            {% if field.help_text %}<small class="muted">{{ field.help_text }}</small>{% endif %}
+        {% endfor %}
+        {% for error in form.non_field_errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+        <button class="button" type="submit">创建账号</button>
+    </form>
+</section>
+{% endblock %}

@@ -14,7 +14,12 @@
             <nav aria-label="主导航" class="main-nav">
                 <a href="{% url 'library:home' %}">资源库</a>
                 <a href="{% url 'library:search' %}">搜索</a>
+                <a href="{% url 'library:tags' %}">标签</a>
                 {% if user.is_authenticated %}
+                    {% if user.role == 'admin' or user.is_superuser %}
+                        <a href="{% url 'accounts:list' %}">账号管理</a>
+                    {% endif %}
+                    <a href="{% url 'accounts:password_change' %}">修改密码</a>
                     <span class="nav-user">{{ user.get_username }}</span>
                     <form action="{% url 'accounts:logout' %}" method="post" class="inline-form">
                         {% csrf_token %}
@@ -27,6 +32,7 @@
         </div>
     </header>
     <main class="container main-content">
+        {% for message in messages %}<p class="message message-success">{{ message }}</p>{% endfor %}
         {% block content %}{% endblock %}
     </main>
     <footer class="site-footer">

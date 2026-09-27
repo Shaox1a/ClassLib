@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<p class="breadcrumb"><a href="{{ back_url }}">返回</a></p>
+<section class="auth-card" aria-labelledby="delete-title">
+    <h1 id="delete-title">{{ title }}</h1>
+    <p>确定删除“{{ name }}”吗？</p>
+    <p class="muted">{{ warning }}</p>
+    <form method="post" class="action-bar">
+        {% csrf_token %}
+        <button class="button button-danger" type="submit">确认删除</button>
+        <a href="{{ back_url }}">取消</a>
+    </form>
+</section>
+{% endblock %}

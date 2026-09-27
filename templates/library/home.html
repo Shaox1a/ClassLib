@@ -7,7 +7,7 @@
     <div>
         <p class="eyebrow">班级学习资料库</p>
         <h1>找到你需要的学习资料</h1>
-        <p class="hero-copy">按学科浏览班级资料，后续可使用文件名、文件夹名和标签搜索。</p>
+        <p class="hero-copy">按文件夹浏览，或按名称、学科和标签搜索资料。</p>
     </div>
     <form class="search-form" action="{% url 'library:search' %}" method="get" role="search">
         <label class="sr-only" for="home-search">搜索资料</label>
@@ -18,16 +18,20 @@
 
 <section aria-labelledby="folders-title">
     <div class="section-heading">
-        <h2 id="folders-title">学科文件夹</h2>
-        <span class="muted">{{ folders|length }} 个文件夹</span>
+        <div><h2 id="folders-title">文件夹</h2><span class="muted">{{ folders|length }} 个根目录文件夹</span></div>
+        {% if can_manage %}<a class="button" href="{% url 'library:folder_create_root' %}">新建文件夹</a>{% endif %}
     </div>
-    <div class="folder-grid">
-        {% for folder in folders %}
-            <a class="folder-card" href="{% url 'library:folder' folder.id %}">
-                <span class="folder-icon" aria-hidden="true">📁</span>
-                <span><strong>{{ folder.name }}</strong><small>{{ folder.description }}</small></span>
-            </a>
-        {% endfor %}
-    </div>
+    {% if folders %}
+        <div class="folder-grid">
+            {% for folder in folders %}
+                <a class="folder-card" href="{% url 'library:folder' folder.id %}">
+                    <span class="folder-icon" aria-hidden="true">📁</span>
+                    <span><strong>{{ folder.name }}</strong><small>打开文件夹</small></span>
+                </a>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state"><h2>还没有文件夹</h2><p>教师可以创建第一个学科文件夹。</p></div>
+    {% endif %}
 </section>
 {% endblock %}
