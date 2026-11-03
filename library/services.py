@@ -2,29 +2,23 @@ import mimetypes
 from pathlib import PurePosixPath
 from uuid import uuid4
 
-from django.conf import settings
-from django.core.files.storage import FileSystemStorage
 from django.db import transaction
 
 from .models import File, Folder
-
-
-def private_storage():
-    return FileSystemStorage(location=settings.PRIVATE_FILE_ROOT)
+from . import storage
 
 
 def save_upload(uploaded_file, extension):
     key = f'{uuid4().hex}{extension}'
-    uploaded_file.seek(0)
-    return private_storage().save(key, uploaded_file)
+    return storage.save(key, uploaded_file)
 
 
 def delete_object(storage_key):
-    private_storage().delete(storage_key)
+    storage.delete(storage_key)
 
 
 def open_download(storage_key):
-    return private_storage().open(storage_key, 'rb')
+    return storage.open_file(storage_key)
 
 
 def mime_type_for(name):
