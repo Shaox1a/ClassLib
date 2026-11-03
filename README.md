@@ -1,5 +1,7 @@
 # ClassLib
 
+正式站点：[classlib-theta.vercel.app](https://classlib-theta.vercel.app/)。使用原有 ClassLib 班级账号登录。
+
 ClassLib 是面向班级内部的私有学习资料库。项目分为 Django 主体和存储层：主体负责账号、权限、页面和元数据；存储层在本地使用 SQLite 与私有目录，在生产环境使用 Supabase Postgres 与私有 Storage bucket。
 
 生产部署：在 Supabase 建立私有 bucket `classlib-private`；在 Vercel 配置 `DATABASE_URL`、`SUPABASE_URL`、`SUPABASE_SERVICE_ROLE_KEY`、`DJANGO_SECRET_KEY`、`DJANGO_DEBUG=0`、`DJANGO_ALLOWED_HOSTS` 和必要时的 `DJANGO_CSRF_TRUSTED_ORIGINS`。服务密钥只放在服务端环境变量中。
