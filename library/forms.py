@@ -5,7 +5,7 @@ from django import forms
 from django.conf import settings
 from django.core.exceptions import ValidationError
 
-from .models import File, Folder, Tag
+from .models import File, Folder
 from .services import descendant_folder_ids
 
 
@@ -161,27 +161,3 @@ class FileMoveForm(forms.ModelForm):
         ).exists():
             raise ValidationError('目标文件夹已有同名文件。')
         return folder
-
-
-class TagForm(forms.ModelForm):
-    class Meta:
-        model = Tag
-        fields = ('name',)
-
-    def clean_name(self):
-        name = clean_display_name(self.cleaned_data['name'].lstrip('#').strip())
-        existing = Tag.objects.filter(name__iexact=name)
-        if self.instance.pk:
-            existing = existing.exclude(pk=self.instance.pk)
-        if existing.exists():
-            raise ValidationError('这个标签已存在。')
-        return name
-
-
-class FileTagsForm(forms.Form):
-    tags = forms.ModelMultipleChoiceField(
-        queryset=Tag.objects.all(),
-        required=False,
-        label='标签',
-        widget=forms.CheckboxSelectMultiple,
-    )

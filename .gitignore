@@ -15,5 +15,12 @@ private_files/
 .vscode/
 .idea/
 .DS_Store
+.vercel/
+.coverage
+htmlcov/
+.ruff_cache/
+*.log
+*.pem
+*.key
 账户.txt
 /学生账户.md

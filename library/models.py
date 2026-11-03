@@ -2,7 +2,6 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
-from django.db.models.functions import Lower
 
 
 class Folder(models.Model):
@@ -60,7 +59,6 @@ class File(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    tags = models.ManyToManyField('Tag', through='FileTag', related_name='files', blank=True)
 
     class Meta:
         ordering = ('name', 'pk')
@@ -70,26 +68,3 @@ class File(models.Model):
 
     def __str__(self):
         return self.name
-
-
-class Tag(models.Model):
-    name = models.CharField(max_length=40)
-
-    class Meta:
-        ordering = ('name', 'pk')
-        constraints = [
-            models.UniqueConstraint(Lower('name'), name='unique_tag_name_case_insensitive')
-        ]
-
-    def __str__(self):
-        return self.name
-
-
-class FileTag(models.Model):
-    file = models.ForeignKey(File, on_delete=models.CASCADE, related_name='tag_links')
-    tag = models.ForeignKey(Tag, on_delete=models.CASCADE, related_name='file_links')
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=('file', 'tag'), name='unique_file_tag')
-        ]

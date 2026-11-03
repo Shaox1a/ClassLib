@@ -9,7 +9,7 @@
     <form class="search-filters" action="{% url 'library:search' %}" method="get" role="search">
         <div class="filter-field filter-query">
             <label for="search-query">关键词</label>
-            <input id="search-query" name="q" type="search" value="{{ query }}" placeholder="文件名、文件夹名或标签">
+            <input id="search-query" name="q" type="search" value="{{ query }}" placeholder="文件名或文件夹名">
         </div>
         <div class="filter-field">
             <label for="search-subject">学科</label>
@@ -17,15 +17,6 @@
                 <option value="">全部学科</option>
                 {% for subject in subjects %}
                     <option value="{{ subject.pk }}" {% if selected_subject.pk == subject.pk %}selected{% endif %}>{{ subject.name }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="filter-field">
-            <label for="search-tag">标签</label>
-            <select id="search-tag" name="tag">
-                <option value="">全部标签</option>
-                {% for item in tags %}
-                    <option value="{{ item.pk }}" {% if selected_tag.pk == item.pk %}selected{% endif %}>#{{ item.name }}</option>
                 {% endfor %}
             </select>
         </div>
@@ -56,7 +47,7 @@
                         <span class="file-icon" aria-hidden="true">📄</span>
                         <span class="file-main">
                             <strong>{{ document.name }}</strong>
-                            <small>{{ document.folder.path }} · {{ document.size|filesizeformat }}{% for item in document.tags.all %} · #{{ item.name }}{% endfor %}</small>
+                            <small>{{ document.folder.path }} · {{ document.size|filesizeformat }}</small>
                         </span>
                         <span class="file-arrow" aria-hidden="true">›</span>
                     </a>
@@ -75,6 +66,6 @@
         <div class="empty-state compact"><h2>没有找到匹配的资料</h2><p>试试其他关键词或筛选条件。</p></div>
     {% endif %}
 {% else %}
-    <div class="empty-state compact"><h2>输入关键词或选择筛选条件</h2><p>可以按文件名、文件夹名、学科和标签查找。</p></div>
+    <div class="empty-state compact"><h2>输入关键词或选择筛选条件</h2><p>可以按文件名、文件夹名和学科查找。</p></div>
 {% endif %}
 {% endblock %}

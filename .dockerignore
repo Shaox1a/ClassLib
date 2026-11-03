@@ -8,6 +8,10 @@ classlib-test-*
 staticfiles
 private_files
 .env
+.env.*
+deploy-private
+账户.txt
+.vercel
 .gitignore
 PROJECT.md
 学生账户.md
