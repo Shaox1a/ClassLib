@@ -16,10 +16,11 @@ def _local():
 def _request(key, method, data=None):
     url = (f"{settings.SUPABASE_URL.rstrip('/')}/storage/v1/object/"
            f"{settings.SUPABASE_BUCKET}/{quote(key, safe='')}")
-    headers = {
-        'Authorization': f'Bearer {settings.SUPABASE_SERVICE_ROLE_KEY}',
-        'apikey': settings.SUPABASE_SERVICE_ROLE_KEY,
-    }
+    key_value = settings.SUPABASE_SERVICE_ROLE_KEY
+    headers = {'apikey': key_value}
+    # Modern secret keys are opaque API keys, not JWT bearer tokens.
+    if not key_value.startswith('sb_secret_'):
+        headers['Authorization'] = f'Bearer {key_value}'
     if data is not None:
         headers['Content-Type'] = 'application/octet-stream'
     return Request(url, data=data, headers=headers, method=method)
