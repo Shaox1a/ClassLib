@@ -1,6 +1,10 @@
-# ClassLib
+# ClassLib 1.0
 
 正式站点：[classlib-theta.vercel.app](https://classlib-theta.vercel.app/)。使用原有 ClassLib 班级账号登录。
+
+当前正式版为 **1.0.0**，发布说明见 [CHANGELOG.md](CHANGELOG.md)。1.0 已移除标签功能，搜索保留名称和学科筛选。
+
+从旧版本升级时，先备份并部署新代码，再执行数据库迁移。生产备份与升级可分别运行 `python scripts/upgrade_release.py backup` 和 `python scripts/upgrade_release.py migrate`；本地使用 `python manage.py migrate`。历史迁移文件必须保留。`python scripts/audit_secrets.py` 检查密钥忽略规则和 Git 历史，`python scripts/smoke_production.py` 验证生产功能并自动清理临时测试数据。
 
 ClassLib 是面向班级内部的私有学习资料库。项目分为 Django 主体和存储层：主体负责账号、权限、页面和元数据；存储层在本地使用 SQLite 与私有目录，在生产环境使用 Supabase Postgres 与私有 Storage bucket。
 
@@ -36,5 +40,5 @@ docker compose exec web python manage.py createsuperuser
 - [PROJECT.md](PROJECT.md)：需求与开发路线。
 - [START.md](START.md)：本地启动步骤。
 - `accounts/`：用户、角色和账号管理。
-- `library/`：文件夹、文件、标签、权限、搜索和私有存储。
+- `library/`：文件夹、文件、权限、搜索和私有存储。
 - `private_files/`：开发阶段的私有文件存储目录，由 Django 验证身份后提供下载，不会被 Git 跟踪。

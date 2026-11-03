@@ -23,7 +23,7 @@ from django.core.management import call_command
 from django.core.files.base import ContentFile
 from django.db import connection
 from accounts.models import User
-from library.models import File, Folder, Tag
+from library.models import File, Folder
 from library import storage
 
 if mode == 'verify':
@@ -49,7 +49,7 @@ elif mode == 'export':
                  stdout=exported)
     (directory / 'data.json').write_text(exported.getvalue(), encoding='utf-8')
     print(json.dumps({'users': User.objects.count(), 'folders': Folder.objects.count(),
-                      'files': File.objects.count(), 'tags': Tag.objects.count()}))
+                      'files': File.objects.count()}))
 elif mode == 'migrate':
     with connection.cursor() as cursor:
         cursor.execute('CREATE SCHEMA IF NOT EXISTS classlib')
@@ -88,4 +88,4 @@ elif mode == 'audit':
     assert canonical(actual) == canonical(expected), 'Source and migrated metadata differ'
     print('Every exported application record matches the local source')
     print(json.dumps({'users': User.objects.count(), 'folders': Folder.objects.count(),
-                      'files': File.objects.count(), 'tags': Tag.objects.count()}))
+                      'files': File.objects.count()}))

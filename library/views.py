@@ -3,17 +3,15 @@ from urllib.parse import urlencode
 from django.contrib import messages
 from django.conf import settings
 from django.core.paginator import Paginator
-from django.db import transaction
-from django.db.models import Count
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
 from .forms import (
-    FileMoveForm, FileNameForm, FileTagsForm, FolderMoveForm, FolderNameForm, TagForm,
+    FileMoveForm, FileNameForm, FolderMoveForm, FolderNameForm,
     UploadForm,
 )
-from .models import File, Folder, Tag
+from .models import File, Folder
 from .permissions import has_permission, library_permission_required
 from .search import search_library
 from .services import create_file, delete_file, delete_folder, open_download
@@ -144,7 +142,7 @@ def file_upload(request, folder_id):
 @library_permission_required('view')
 def file_detail(request, file_id):
     document = get_object_or_404(
-        File.objects.select_related('folder', 'uploader').prefetch_related('tags'), pk=file_id
+        File.objects.select_related('folder', 'uploader'), pk=file_id
     )
     return render(request, 'library/file.html', {
         'document': document,
@@ -211,72 +209,6 @@ def file_delete(request, file_id):
     })
 
 
-@library_permission_required('view')
-def tag_list(request):
-    tags = Tag.objects.annotate(file_count=Count('files', distinct=True))
-    return render(request, 'library/tags.html', {
-        'tags': tags,
-        'can_manage': can_manage(request.user),
-    })
-
-
-@library_permission_required('manage')
-def tag_create(request):
-    form = TagForm(request.POST if request.method == 'POST' else None)
-    if request.method == 'POST' and form.is_valid():
-        form.save()
-        messages.success(request, '标签已创建。')
-        return redirect('library:tags')
-    return edit_page(request, title='新建标签', form=form,
-                     back_url=reverse('library:tags'), submit_label='创建')
-
-
-@library_permission_required('manage')
-def tag_rename(request, tag_id):
-    tag = get_object_or_404(Tag, pk=tag_id)
-    form = TagForm(request.POST if request.method == 'POST' else None, instance=tag)
-    if request.method == 'POST' and form.is_valid():
-        form.save()
-        messages.success(request, '标签已重命名。')
-        return redirect('library:tags')
-    return edit_page(request, title='重命名标签', form=form,
-                     back_url=reverse('library:tags'))
-
-
-@library_permission_required('manage')
-def tag_delete(request, tag_id):
-    tag = get_object_or_404(Tag, pk=tag_id)
-    if request.method == 'POST':
-        tag.delete()
-        messages.success(request, '标签已删除。')
-        return redirect('library:tags')
-    return render(request, 'library/confirm_delete.html', {
-        'title': '删除标签',
-        'name': tag.name,
-        'warning': '标签将从关联文件中移除，文件本身会保留。',
-        'back_url': reverse('library:tags'),
-    })
-
-
-@library_permission_required('manage')
-def file_tags(request, file_id):
-    document = get_object_or_404(File.objects.prefetch_related('tags'), pk=file_id)
-    form = FileTagsForm(
-        request.POST if request.method == 'POST' else None,
-        initial={'tags': document.tags.all()},
-    )
-    if request.method == 'POST' and form.is_valid():
-        with transaction.atomic():
-            document.tags.set(form.cleaned_data['tags'])
-            document.save(update_fields=['updated_at'])
-        messages.success(request, '文件标签已更新。')
-        return redirect('library:file', file_id=document.pk)
-    return render(request, 'library/file_tags.html', {
-        'document': document,
-        'form': form,
-    })
-
-
 def selected_filter(model, raw_id, **filters):
     if not raw_id:
         return None
@@ -291,27 +223,23 @@ def selected_filter(model, raw_id, **filters):
 def search(request):
     query = request.GET.get('q', '').strip()[:200]
     subject = selected_filter(Folder, request.GET.get('subject'), parent__isnull=True)
-    tag = selected_filter(Tag, request.GET.get('tag'))
-    has_searched = bool(query or subject or tag)
+    has_searched = bool(query or subject)
     folders = Folder.objects.none()
     file_page = None
     if has_searched:
-        folders, files = search_library(query=query, subject=subject, tag=tag)
+        folders, files = search_library(query=query, subject=subject)
         file_page = Paginator(files, 20).get_page(request.GET.get('page'))
 
     filter_query = urlencode({
         key: value for key, value in {
             'q': query,
             'subject': subject.pk if subject else '',
-            'tag': tag.pk if tag else '',
         }.items() if value
     })
     return render(request, 'library/search.html', {
         'query': query,
         'subjects': Folder.objects.filter(parent__isnull=True),
-        'tags': Tag.objects.all(),
         'selected_subject': subject,
-        'selected_tag': tag,
         'has_searched': has_searched,
         'folders': folders,
         'file_page': file_page,

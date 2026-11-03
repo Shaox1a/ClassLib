@@ -11,7 +11,7 @@ from django.urls import reverse
 
 from accounts.models import User
 
-from .models import File, Folder, Tag
+from .models import File, Folder
 from .permissions import has_permission
 
 
@@ -254,7 +254,7 @@ class LibraryTests(TestCase):
         self.assertContains(response, '函数')
 
 
-class TagAndSearchTests(TestCase):
+class SearchTests(TestCase):
     def setUp(self):
         self.student = User.objects.create_user(username='student', password='student-password')
         self.teacher = User.objects.create_user(
@@ -274,13 +274,11 @@ class TagAndSearchTests(TestCase):
             name='阅读材料.pdf', folder=self.english, storage_key='english.pdf',
             size=10, mime_type='application/pdf', uploader=self.teacher,
         )
-        self.review = Tag.objects.create(name='期中复习')
-        self.math_file.tags.add(self.review)
 
     def result_file_ids(self, response):
         return {document.pk for document in response.context['file_page']}
 
-    def test_permission_matrix_and_student_tag_management_denial(self):
+    def test_permission_matrix_and_search_requires_login(self):
         self.assertFalse(has_permission(AnonymousUser(), 'view'))
         self.assertTrue(has_permission(self.student, 'view'))
         self.assertTrue(has_permission(self.student, 'download'))
@@ -290,94 +288,39 @@ class TagAndSearchTests(TestCase):
             self.assertTrue(has_permission(self.teacher, action))
             self.assertTrue(has_permission(self.admin_user, action))
 
-        self.client.force_login(self.student)
-        self.assertEqual(self.client.get(reverse('library:tags')).status_code, 200)
-        for url in (
-            reverse('library:tag_create'),
-            reverse('library:tag_rename', args=[self.review.pk]),
-            reverse('library:tag_delete', args=[self.review.pk]),
-            reverse('library:file_tags', args=[self.math_file.pk]),
-        ):
-            self.assertEqual(self.client.get(url).status_code, 403)
-            self.assertEqual(self.client.post(url, {}).status_code, 403)
+        self.assertEqual(self.client.get(reverse('library:search')).status_code, 302)
 
-        self.client.logout()
-        for url in (reverse('library:tags'), reverse('library:search')):
-            self.assertEqual(self.client.get(url).status_code, 302)
-
-    def test_search_finds_file_name_folder_name_and_tag_name(self):
+    def test_search_finds_file_name_and_folder_name(self):
         self.client.force_login(self.student)
         by_file = self.client.get(reverse('library:search'), {'q': '导数'})
         by_folder = self.client.get(reverse('library:search'), {'q': '数学'})
         by_child_folder = self.client.get(reverse('library:search'), {'q': '函数'})
-        by_tag = self.client.get(reverse('library:search'), {'q': '期中'})
 
-        for response in (by_file, by_folder, by_child_folder, by_tag):
+        for response in (by_file, by_folder, by_child_folder):
             self.assertEqual(response.status_code, 200)
             self.assertEqual(self.result_file_ids(response), {self.math_file.pk})
         self.assertContains(by_folder, '数学')
         self.assertContains(by_child_folder, '函数')
         self.assertContains(by_child_folder, '数学 / 函数')
 
-    def test_subject_and_tag_filters_can_be_combined(self):
+    def test_subject_and_name_filters_can_be_combined(self):
         self.client.force_login(self.student)
-        subject_result = self.client.get(reverse('library:search'), {'subject': self.math.pk})
-        tag_result = self.client.get(reverse('library:search'), {'tag': self.review.pk})
+        subject = self.client.get(reverse('library:search'), {'subject': self.math.pk})
+        self.assertEqual(self.result_file_ids(subject), {self.math_file.pk})
         combined = self.client.get(reverse('library:search'), {
-            'subject': self.english.pk, 'tag': self.review.pk,
+            'subject': self.english.pk, 'q': '导数',
         })
-
-        self.assertEqual(self.result_file_ids(subject_result), {self.math_file.pk})
-        self.assertEqual(self.result_file_ids(tag_result), {self.math_file.pk})
         self.assertEqual(self.result_file_ids(combined), set())
         self.assertContains(combined, '没有找到匹配的资料')
 
-    def test_teacher_assigns_multiple_tags_and_can_remove_them(self):
+    def test_removed_tag_routes_and_ui_are_absent(self):
         self.client.force_login(self.teacher)
-        extra = Tag.objects.create(name='练习题')
-        edit_url = reverse('library:file_tags', args=[self.math_file.pk])
-
-        response = self.client.post(edit_url, {'tags': [self.review.pk, extra.pk]})
-        self.assertRedirects(response, reverse('library:file', args=[self.math_file.pk]))
-        self.assertEqual(set(self.math_file.tags.values_list('pk', flat=True)), {
-            self.review.pk, extra.pk,
-        })
-        self.assertContains(self.client.get(reverse('library:file', args=[self.math_file.pk])), '#练习题')
-
-        self.client.post(edit_url, {})
-        self.assertFalse(self.math_file.tags.exists())
-        self.assertTrue(File.objects.filter(pk=self.math_file.pk).exists())
-
-    def test_tag_creation_rename_and_delete_keep_file(self):
-        self.client.force_login(self.teacher)
-        create_response = self.client.post(reverse('library:tag_create'), {'name': '#Review'})
-        self.assertRedirects(create_response, reverse('library:tags'))
-        tag = Tag.objects.get(name='Review')
-
-        duplicate = self.client.post(reverse('library:tag_create'), {'name': '#review'})
-        self.assertEqual(duplicate.status_code, 200)
-        self.assertEqual(Tag.objects.filter(name__iexact='review').count(), 1)
-
-        self.assertRedirects(
-            self.client.post(reverse('library:tag_rename', args=[tag.pk]), {'name': '考试'}),
-            reverse('library:tags'),
-        )
-        tag.refresh_from_db()
-        self.assertEqual(tag.name, '考试')
-        self.math_file.tags.add(tag)
-        self.assertRedirects(
-            self.client.post(reverse('library:tag_delete', args=[tag.pk])),
-            reverse('library:tags'),
-        )
-        self.assertFalse(Tag.objects.filter(pk=tag.pk).exists())
-        self.assertTrue(File.objects.filter(pk=self.math_file.pk).exists())
-
-    def test_admin_can_manage_tags(self):
-        self.client.force_login(self.admin_user)
-        response = self.client.post(reverse('library:tag_create'), {'name': '高一'})
-
-        self.assertRedirects(response, reverse('library:tags'))
-        self.assertTrue(Tag.objects.filter(name='高一').exists())
+        for url in ['/tags/', '/tags/new/', '/tags/1/rename/', '/tags/1/delete/',
+                    f'/file/{self.math_file.pk}/tags/']:
+            self.assertEqual(self.client.get(url).status_code, 404)
+            self.assertEqual(self.client.post(url, {}).status_code, 404)
+        for url in ['/', reverse('library:file', args=[self.math_file.pk]), reverse('library:search')]:
+            self.assertNotContains(self.client.get(url), '标签')
 
     def test_search_files_are_paginated(self):
         for index in range(21):
@@ -396,7 +339,7 @@ class TagAndSearchTests(TestCase):
 
     def test_invalid_filter_ids_return_404(self):
         self.client.force_login(self.student)
-        self.assertEqual(self.client.get(reverse('library:search'), {'tag': 'abc'}).status_code, 404)
+        self.assertEqual(self.client.get(reverse('library:search'), {'subject': 'abc'}).status_code, 404)
         self.assertEqual(self.client.get(reverse('library:search'), {
             'subject': self.functions.pk,
         }).status_code, 404)

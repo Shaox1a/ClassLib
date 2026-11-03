@@ -71,6 +71,16 @@ try:
     checks.append('Anonymous users must log in')
     teacher, teacher_jar = login(User.Role.TEACHER)
     checks.append('Teacher login and secure session cookie')
+    for path in ['/', '/search/']:
+        with get(teacher, path) as response:
+            assert '\u6807\u7b7e' not in response.read().decode('utf-8')
+    for path in ['/tags/', '/tags/new/', '/tags/1/rename/', '/tags/1/delete/', '/file/1/tags/']:
+        try:
+            get(teacher, path)
+            raise AssertionError('Removed tag route still exists')
+        except HTTPError as error:
+            assert error.code == 404
+    checks.append('Tag navigation and all tag routes removed')
     name = 'deployment-check-' + uuid4().hex
     with post(teacher, teacher_jar, '/folder/new/', {'name': name}) as response:
         assert response.status == 200
@@ -113,6 +123,11 @@ try:
         assert hashlib.sha256(response.read()).digest() == hashlib.sha256(content).digest()
     checks.append('Student upload denied; authenticated signed download matches content')
     original = File.objects.exclude(folder=folder).first()
+    with get(student, f'/file/{original.pk}/') as response:
+        assert '\u6807\u7b7e' not in response.read().decode('utf-8')
+    with get(student, '/search/?' + urlencode({'q': original.name})) as response:
+        assert original.name in response.read().decode('utf-8')
+    checks.append('File details and filename search work without tags')
     with get(student, f'/file/{original.pk}/download/') as response:
         assert hashlib.sha256(response.read()).digest() == hashlib.sha256(
             (ROOT / 'private_files' / original.storage_key).read_bytes()).digest()

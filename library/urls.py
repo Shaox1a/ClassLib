@@ -22,10 +22,5 @@ urlpatterns = [
     path('file/<int:file_id>/rename/', views.file_rename, name='file_rename'),
     path('file/<int:file_id>/move/', views.file_move, name='file_move'),
     path('file/<int:file_id>/delete/', views.file_delete, name='file_delete'),
-    path('file/<int:file_id>/tags/', views.file_tags, name='file_tags'),
     path('search/', views.search, name='search'),
-    path('tags/', views.tag_list, name='tags'),
-    path('tags/new/', views.tag_create, name='tag_create'),
-    path('tags/<int:tag_id>/rename/', views.tag_rename, name='tag_rename'),
-    path('tags/<int:tag_id>/delete/', views.tag_delete, name='tag_delete'),
 ]

@@ -74,13 +74,6 @@ input:focus { outline: 3px solid rgb(49 87 213 / 20%); border-color: var(--brand
 .file-meta div { display: grid; grid-template-columns: 100px 1fr; gap: 16px; }
 .file-meta dt { color: var(--muted); }
 .file-meta dd { margin: 0; overflow-wrap: anywhere; }
-.tag-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
-.tag-chip { display: inline-flex; padding: 4px 10px; border-radius: 999px; color: #2947ad; background: #edf1ff; font-size: .9rem; }
-.tag-chip:hover { background: #dce5ff; }
-.tag-actions { margin-top: 0; }
-.tag-picker { max-height: 280px; overflow: auto; padding: 12px; border: 1px solid var(--line); border-radius: 8px; }
-.tag-picker label { display: flex; align-items: center; gap: 8px; margin: 3px 0; font-weight: 400; }
-.tag-picker input { width: auto; }
 .search-filters { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; margin-top: 22px; }
 .filter-field { min-width: 160px; }
 .filter-field label { display: block; margin-bottom: 5px; font-weight: 600; }

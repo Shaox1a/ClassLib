@@ -18,14 +18,6 @@
         <div><dt>上传时间</dt><dd>{{ document.created_at|date:"Y-m-d H:i" }}</dd></div>
         <div><dt>更新时间</dt><dd>{{ document.updated_at|date:"Y-m-d H:i" }}</dd></div>
     </dl>
-    <div class="tag-row">
-        {% for item in document.tags.all %}
-            <a class="tag-chip" href="{% url 'library:search' %}?tag={{ item.pk }}">#{{ item.name }}</a>
-        {% empty %}
-            <span class="muted">暂无标签</span>
-        {% endfor %}
-        {% if can_manage %}<a href="{% url 'library:file_tags' document.pk %}">管理标签</a>{% endif %}
-    </div>
     <div class="action-bar">
         <a class="button" href="{% url 'library:file_download' document.pk %}">下载文件</a>
         {% if can_manage %}
