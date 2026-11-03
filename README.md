@@ -4,6 +4,10 @@ ClassLib 是面向班级内部的私有学习资料库。项目分为 Django 主
 
 生产部署：在 Supabase 建立私有 bucket `classlib-private`；在 Vercel 配置 `DATABASE_URL`、`SUPABASE_URL`、`SUPABASE_SERVICE_ROLE_KEY`、`DJANGO_SECRET_KEY`、`DJANGO_DEBUG=0`、`DJANGO_ALLOWED_HOSTS` 和 `DJANGO_CSRF_TRUSTED_ORIGINS`。首次部署前对 Supabase Postgres 执行 `python manage.py migrate`。服务密钥只放在 Vercel 服务端环境变量中。
 
+云端上传使用临时签名 URL，由浏览器直接传至 Supabase 的 `pending/` 路径；Django 复核实际大小和文件内容后，复制到最终对象并登记元数据。bucket 的 `file_size_limit` 应设为 `52428800`（50 MiB）。下载经 Django 鉴权后跳转至有效期 60 秒的私有签名链接，避免文件流量受到 Vercel 请求体限制。上传中断后遗留的 `pending/` 对象不会出现在资料列表，可在签名失效后清理（至少等待两小时）。
+
+`SUPABASE_SERVICE_ROLE_KEY` 同时兼容新版 `sb_secret_` Secret key 与旧版 service_role JWT。Vercel 环境缺少必要配置时会停止启动，避免意外使用开发数据库或默认密钥。
+
 暂不使用 Docker 时，请按 [START.md](START.md) 启动网站。
 
 ## Docker 开发环境
