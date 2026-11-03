@@ -2,7 +2,9 @@
 
 ClassLib 是面向班级内部的私有学习资料库。项目分为 Django 主体和存储层：主体负责账号、权限、页面和元数据；存储层在本地使用 SQLite 与私有目录，在生产环境使用 Supabase Postgres 与私有 Storage bucket。
 
-生产部署：在 Supabase 建立私有 bucket `classlib-private`；在 Vercel 配置 `DATABASE_URL`、`SUPABASE_URL`、`SUPABASE_SERVICE_ROLE_KEY`、`DJANGO_SECRET_KEY`、`DJANGO_DEBUG=0`、`DJANGO_ALLOWED_HOSTS` 和 `DJANGO_CSRF_TRUSTED_ORIGINS`。首次部署前对 Supabase Postgres 执行 `python manage.py migrate`。服务密钥只放在 Vercel 服务端环境变量中。
+生产部署：在 Supabase 建立私有 bucket `classlib-private`；在 Vercel 配置 `DATABASE_URL`、`SUPABASE_URL`、`SUPABASE_SERVICE_ROLE_KEY`、`DJANGO_SECRET_KEY`、`DJANGO_DEBUG=0`、`DJANGO_ALLOWED_HOSTS` 和必要时的 `DJANGO_CSRF_TRUSTED_ORIGINS`。服务密钥只放在服务端环境变量中。
+
+首次迁移现有本地资料时，在本地 `.env` 填好连接信息，依次执行 `python scripts/deploy_data.py verify`、`export`、`migrate`、`files`、`audit`。`migrate` 会建立不向 Data API 开放的 `classlib` schema，导入账号和资料元数据并开启 RLS；`files` 上传原有文件并校验 SHA-256。目标已有业务数据时会拒绝再次导入。导出文件存于被 Git 和 Vercel 排除的 `deploy-private/`。后续普通结构迁移使用同一数据库连接执行 `python manage.py migrate`，新表同样应启用 RLS。
 
 云端上传使用临时签名 URL，由浏览器直接传至 Supabase 的 `pending/` 路径；Django 复核实际大小和文件内容后，复制到最终对象并登记元数据。bucket 的 `file_size_limit` 应设为 `52428800`（50 MiB）。下载经 Django 鉴权后跳转至有效期 60 秒的私有签名链接，避免文件流量受到 Vercel 请求体限制。上传中断后遗留的 `pending/` 对象不会出现在资料列表，可在签名失效后清理（至少等待两小时）。
 

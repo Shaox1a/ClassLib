@@ -107,8 +107,10 @@ if os.getenv('DATABASE_URL'):
         'PASSWORD': unquote(database_url.password or ''),
         'HOST': database_url.hostname,
         'PORT': database_url.port or 5432,
-        'OPTIONS': {'sslmode': 'require'},
+        'OPTIONS': {'sslmode': 'require', 'options': '-c search_path=classlib,public',
+                    'prepare_threshold': None},
         'CONN_MAX_AGE': 0,
+        'DISABLE_SERVER_SIDE_CURSORS': True,
     }
 
 
