@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 import os
 from pathlib import Path
+from urllib.parse import urlparse, unquote
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -47,6 +48,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -84,6 +86,20 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+if os.getenv('DATABASE_URL'):
+    database_url = urlparse(os.environ['DATABASE_URL'])
+    if database_url.scheme not in {'postgres', 'postgresql'}:
+        raise ValueError('DATABASE_URL must be a PostgreSQL URL')
+    DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': unquote(database_url.path.lstrip('/')),
+        'USER': unquote(database_url.username or ''),
+        'PASSWORD': unquote(database_url.password or ''),
+        'HOST': database_url.hostname,
+        'PORT': database_url.port or 5432,
+        'OPTIONS': {'sslmode': 'require'},
+        'CONN_MAX_AGE': 0,
+    }
 
 
 # Password validation
@@ -123,7 +139,18 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+STORAGES = {'staticfiles': {'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage'}}
 PRIVATE_FILE_ROOT = BASE_DIR / 'private_files'
+SUPABASE_URL = os.getenv('SUPABASE_URL', '').strip()
+SUPABASE_SERVICE_ROLE_KEY = os.getenv('SUPABASE_SERVICE_ROLE_KEY', '').strip()
+SUPABASE_BUCKET = os.getenv('SUPABASE_BUCKET', 'classlib-private').strip()
+if SUPABASE_URL and not SUPABASE_SERVICE_ROLE_KEY:
+    raise ValueError('SUPABASE_SERVICE_ROLE_KEY is required when SUPABASE_URL is set')
+if not DEBUG:
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in os.getenv('DJANGO_CSRF_TRUSTED_ORIGINS', '').split(',') if origin.strip()]
 MAX_UPLOAD_SIZE = 50 * 1024 * 1024  # 50 MiB per file
 FILE_UPLOAD_HANDLERS = [
     'library.upload_handlers.SizeLimitUploadHandler',
