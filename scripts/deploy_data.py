@@ -78,5 +78,14 @@ elif mode == 'files':
             assert hashlib.sha256(remote.read()).digest() == hashlib.sha256(content).digest()
     print(f'Uploaded and SHA-256 verified {File.objects.count()} objects')
 elif mode == 'audit':
+    exported = StringIO()
+    call_command('dumpdata', natural_foreign=True, natural_primary=True,
+                 exclude=['contenttypes', 'auth.permission', 'sessions', 'admin.logentry'],
+                 stdout=exported)
+    expected = json.loads((ROOT / 'deploy-private' / 'data.json').read_text(encoding='utf-8'))
+    actual = json.loads(exported.getvalue())
+    canonical = lambda rows: sorted(json.dumps(row, sort_keys=True) for row in rows)
+    assert canonical(actual) == canonical(expected), 'Source and migrated metadata differ'
+    print('Every exported application record matches the local source')
     print(json.dumps({'users': User.objects.count(), 'folders': Folder.objects.count(),
                       'files': File.objects.count(), 'tags': Tag.objects.count()}))
