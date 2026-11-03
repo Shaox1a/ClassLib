@@ -7,6 +7,9 @@ staticfiles/
 private_files/
 /classlib-test-*/
 .env
+.env.*
+!.env.example
+/deploy-private/
 .pytest_cache/
 .mypy_cache/
 .vscode/

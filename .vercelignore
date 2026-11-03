@@ -1,4 +1,6 @@
 .git/
+deploy-private/
+scripts/
 .venv/
 .env
 .env.*
