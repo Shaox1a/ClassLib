@@ -25,9 +25,9 @@ def mime_type_for(name):
     return mimetypes.guess_type(name)[0] or 'application/octet-stream'
 
 
-def create_file(*, folder, uploaded_file, name, uploader):
+def create_file(*, folder, uploaded_file, name, uploader, storage_key=None):
     extension = PurePosixPath(name).suffix.lower()
-    key = save_upload(uploaded_file, extension)
+    key = storage.save(storage_key, uploaded_file) if storage_key else save_upload(uploaded_file, extension)
     try:
         return File.objects.create(
             name=name,

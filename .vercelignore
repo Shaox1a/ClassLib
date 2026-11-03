@@ -1,0 +1,12 @@
+.git/
+.venv/
+.env
+.env.*
+!.env.example
+db.sqlite3*
+private_files/
+classlib-test-*/
+__pycache__/
+*.pyc
+账户.txt
+学生账户.md

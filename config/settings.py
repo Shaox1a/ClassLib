@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 import os
 from pathlib import Path
 from urllib.parse import urlparse, unquote
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -29,6 +30,15 @@ SECRET_KEY = os.getenv(
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DJANGO_DEBUG', '1').lower() in {'1', 'true', 'yes', 'on'}
+if os.getenv('VERCEL'):
+    required = ('DATABASE_URL', 'SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY',
+                'DJANGO_SECRET_KEY', 'DJANGO_ALLOWED_HOSTS')
+    missing = [name for name in required if not os.getenv(name, '').strip()]
+    if missing:
+        raise ImproperlyConfigured('Missing production settings: ' + ', '.join(missing))
+    DEBUG = False
+    if SECRET_KEY.startswith('django-insecure-') or len(SECRET_KEY) < 50:
+        raise ImproperlyConfigured('Set a unique production DJANGO_SECRET_KEY of at least 50 characters')
 
 ALLOWED_HOSTS = [host.strip() for host in os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,testserver').split(',') if host.strip()]
 

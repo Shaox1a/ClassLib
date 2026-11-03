@@ -1,6 +1,7 @@
 from urllib.parse import urlencode
 
 from django.contrib import messages
+from django.conf import settings
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Count
@@ -16,6 +17,7 @@ from .models import File, Folder, Tag
 from .permissions import has_permission, library_permission_required
 from .search import search_library
 from .services import create_file, delete_file, delete_folder, open_download
+from . import storage
 
 
 def can_manage(user):
@@ -37,6 +39,7 @@ def edit_page(request, *, title, form, back_url, submit_label='保存', is_uploa
         'back_url': back_url,
         'submit_label': submit_label,
         'is_upload': is_upload,
+        'direct_upload': is_upload and bool(settings.SUPABASE_URL),
     })
 
 
@@ -153,6 +156,11 @@ def file_detail(request, file_id):
 @library_permission_required('download')
 def file_download(request, file_id):
     document = get_object_or_404(File, pk=file_id)
+    if settings.SUPABASE_URL:
+        response = redirect(storage.signed_download(document.storage_key, document.name))
+        response['Cache-Control'] = 'private, no-store'
+        response['Referrer-Policy'] = 'no-referrer'
+        return response
     try:
         stream = open_download(document.storage_key)
     except (FileNotFoundError, OSError) as exc:
