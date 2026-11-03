@@ -1,3 +1,9 @@
+from io import StringIO
+from pathlib import Path
+from unittest.mock import patch
+
+from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.test import Client, TestCase
 from django.urls import reverse
 
@@ -150,3 +156,31 @@ class AccountManagementTests(TestCase):
         response = self.client.get(reverse('library:home'))
         self.assertEqual(response.status_code, 302)
         self.assertTrue(response.url.startswith(reverse('accounts:login')))
+
+
+class StudentImportTests(TestCase):
+    def test_import_creates_hashed_student_accounts_without_printing_passwords(self):
+        output = StringIO()
+        source_text = 'alice strong-password-123\nbob another-password-456\n'
+        with patch.object(Path, 'read_text', return_value=source_text):
+            call_command('import_students', 'unused.md', stdout=output)
+
+        self.assertEqual(User.objects.filter(role=User.Role.STUDENT).count(), 2)
+        self.assertTrue(User.objects.get(username='alice').check_password('strong-password-123'))
+        self.assertNotIn('strong-password-123', output.getvalue())
+        self.assertNotIn('another-password-456', output.getvalue())
+
+    def test_import_rejects_existing_user_without_partial_creation(self):
+        User.objects.create_user(username='bob', password='existing-password-123')
+        with patch.object(Path, 'read_text', return_value='alice strong-password-123\nbob new-password-456'):
+            with self.assertRaises(CommandError):
+                call_command('import_students', 'unused.md', stdout=StringIO())
+
+        self.assertFalse(User.objects.filter(username='alice').exists())
+        self.assertEqual(User.objects.filter(username='bob').count(), 1)
+
+    def test_dry_run_does_not_create_accounts(self):
+        with patch.object(Path, 'read_text', return_value='alice strong-password-123'):
+            call_command('import_students', 'unused.md', dry_run=True, stdout=StringIO())
+
+        self.assertFalse(User.objects.exists())
