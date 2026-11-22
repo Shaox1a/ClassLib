@@ -129,9 +129,18 @@ try:
         assert original.name in response.read().decode('utf-8')
     checks.append('File details and filename search work without tags')
     with get(student, f'/file/{original.pk}/download/') as response:
-        assert hashlib.sha256(response.read()).digest() == hashlib.sha256(
-            (ROOT / 'private_files' / original.storage_key).read_bytes()).digest()
-    checks.append('Migrated original file downloads with matching SHA-256')
+        downloaded = response.read()
+    local_original = ROOT / 'private_files' / original.storage_key
+    if local_original.exists():
+        expected = local_original.read_bytes()
+    else:
+        # Production may contain files uploaded after the initial local migration.
+        from library import storage
+        with storage.open_file(original.storage_key) as source:
+            expected = source.read()
+    assert len(downloaded) == original.size
+    assert hashlib.sha256(downloaded).digest() == hashlib.sha256(expected).digest()
+    checks.append('Existing production file downloads with matching size and SHA-256')
     with post(teacher, teacher_jar, f'/file/{document.pk}/delete/', {}) as response:
         assert response.status == 200
     assert not File.objects.filter(pk=document.pk).exists()
