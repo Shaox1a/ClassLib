@@ -87,7 +87,7 @@ try:
     folder = Folder.objects.get(name=name)
     upload_path = f'/folder/{folder.pk}/upload/'
     with get(teacher, upload_path) as response:
-        assert b'data-direct-upload' in response.read()
+        assert b'data-upload-queue' in response.read()
     for asset in ['/static/css/site.css', '/static/js/upload.js']:
         with get(teacher, asset) as response:
             assert response.status == 200 and response.read()
@@ -111,7 +111,7 @@ try:
     assert document.size == len(content)
     with post(teacher, teacher_jar, upload_path + 'finish/', {'ticket': upload['ticket']}) as response:
         assert json.load(response)['redirect'] == document_url
-    checks.append('Over-5-MiB direct upload, CORS, content validation, idempotent confirmation')
+    checks.append('Over-5-MiB direct upload, CORS, byte-size verification, idempotent confirmation')
     student, student_jar = login(User.Role.STUDENT)
     try:
         post(student, student_jar, upload_path + 'begin/', {'name': 'blocked.txt', 'size': 5})

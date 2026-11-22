@@ -1,19 +1,10 @@
 from pathlib import PurePosixPath
-from zipfile import BadZipFile, ZipFile
 
 from django import forms
-from django.conf import settings
 from django.core.exceptions import ValidationError
 
 from .models import File, Folder
 from .services import descendant_folder_ids
-
-
-ALLOWED_EXTENSIONS = {
-    '.pdf', '.ppt', '.pptx', '.doc', '.docx', '.xls', '.xlsx',
-    '.zip', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.txt',
-}
-OLE_SIGNATURE = b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1'
 
 
 def clean_display_name(name):
@@ -22,42 +13,6 @@ def clean_display_name(name):
         raise ValidationError('请输入有效名称。')
     return name
 
-
-def validate_file_content(uploaded_file, extension):
-    uploaded_file.seek(0)
-    head = uploaded_file.read(4096)
-    try:
-        if extension == '.pdf':
-            valid = head.startswith(b'%PDF-')
-        elif extension in {'.doc', '.ppt', '.xls'}:
-            valid = head.startswith(OLE_SIGNATURE)
-        elif extension == '.png':
-            valid = head.startswith(b'\x89PNG\r\n\x1a\n')
-        elif extension in {'.jpg', '.jpeg'}:
-            valid = head.startswith(b'\xff\xd8\xff')
-        elif extension == '.gif':
-            valid = head.startswith((b'GIF87a', b'GIF89a'))
-        elif extension == '.webp':
-            valid = head[:4] == b'RIFF' and head[8:12] == b'WEBP'
-        elif extension == '.txt':
-            valid = b'\x00' not in head
-        else:
-            try:
-                with ZipFile(uploaded_file) as archive:
-                    if extension == '.zip':
-                        valid = True
-                    else:
-                        names = archive.namelist()
-                        prefix = {'.docx': 'word/', '.pptx': 'ppt/', '.xlsx': 'xl/'}[extension]
-                        valid = '[Content_Types].xml' in names and any(
-                            item.startswith(prefix) for item in names
-                        )
-            except (BadZipFile, OSError, RuntimeError, ValueError):
-                valid = False
-        if not valid:
-            raise ValidationError('文件内容与扩展名不符，或文件已损坏。')
-    finally:
-        uploaded_file.seek(0)
 
 
 class FolderNameForm(forms.ModelForm):
@@ -109,7 +64,7 @@ class FolderMoveForm(forms.ModelForm):
 
 
 class UploadForm(forms.Form):
-    upload = forms.FileField(label='选择文件')
+    upload = forms.FileField(allow_empty_file=True, label='选择文件')
 
     def __init__(self, *args, folder, **kwargs):
         super().__init__(*args, **kwargs)
@@ -121,14 +76,8 @@ class UploadForm(forms.Form):
         name = clean_display_name(uploaded.name.replace('\\', '/').split('/')[-1])
         if len(name) > 255:
             raise ValidationError('文件名不能超过 255 个字符。')
-        extension = PurePosixPath(name).suffix.lower()
-        if extension not in ALLOWED_EXTENSIONS:
-            raise ValidationError('不支持这种文件类型。')
-        if uploaded.size > settings.MAX_UPLOAD_SIZE:
-            raise ValidationError('文件不能超过 50 MiB。')
         if File.objects.filter(folder=self.folder, name=name).exists():
             raise ValidationError('这个文件夹已有同名文件。')
-        validate_file_content(uploaded, extension)
         self.file_name = name
         return uploaded
 

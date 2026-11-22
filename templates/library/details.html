@@ -1,0 +1,15 @@
+{% load file_display %}
+<div data-details-view hidden class="details-scroll">
+<table class="details-table">
+  <caption class="sr-only">资料详细信息</caption>
+  <thead><tr><th scope="col">名称</th><th scope="col">修改日期</th><th scope="col">类型</th><th scope="col">大小</th></tr></thead>
+  <tbody>
+  {% for folder in folders %}
+    <tr><td><a href="{% url 'library:folder' folder.pk %}">📁 {{ folder.name }}</a>{% if show_path %}<small>{{ folder.path }}</small>{% endif %}</td><td>{{ folder.updated_at|date:'Y-m-d H:i' }}</td><td>文件夹</td><td>—</td></tr>
+  {% endfor %}
+  {% for document in documents %}
+    <tr><td><a href="{% url 'library:file' document.pk %}">📄 {{ document.name }}</a>{% if show_path %}<small>{{ document.folder.path }}</small>{% endif %}</td><td>{{ document.updated_at|date:'Y-m-d H:i' }}</td><td>{{ document.name|file_type }}</td><td title="{{ document.size }} 字节">{{ document.size|byte_size }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>

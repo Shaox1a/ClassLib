@@ -3,6 +3,7 @@
 {% block title %}资源库{% endblock %}
 
 {% block content %}
+{% include 'library/view_toggle.html' %}
 <section class="hero">
     <div>
         <p class="eyebrow">班级学习资料库</p>
@@ -22,7 +23,8 @@
         {% if can_manage %}<a class="button" href="{% url 'library:folder_create_root' %}">新建文件夹</a>{% endif %}
     </div>
     {% if folders %}
-        <div class="folder-grid">
+        {% include 'library/details.html' with folders=folders only %}
+        <div class="folder-grid" data-icon-view>
             {% for folder in folders %}
                 <a class="folder-card" href="{% url 'library:folder' folder.id %}">
                     <span class="folder-icon" aria-hidden="true">📁</span>

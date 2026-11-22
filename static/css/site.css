@@ -87,5 +87,15 @@ input:focus { outline: 3px solid rgb(49 87 213 / 20%); border-color: var(--brand
 input[type=file] { padding: 8px; }
 .search-form-wide { max-width: 620px; }
 .site-footer { padding: 24px 0; border-top: 1px solid var(--line); color: var(--muted); font-size: .9rem; }
+[hidden] { display: none !important; }
+.view-toggle { display: flex; gap: 8px; justify-content: flex-end; margin-bottom: 16px; }
+.view-toggle button { padding: 8px 14px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+.view-toggle [aria-pressed=true] { background: var(--brand); color: white; }
+.details-scroll { overflow-x: auto; }
+.details-table { border-collapse: collapse; width: 100%; min-width: 620px; }
+.details-table th, .details-table td { text-align: left; padding: 12px; border-bottom: 1px solid var(--line); }
+.details-table td:first-child { min-width: 220px; max-width: 500px; overflow-wrap: anywhere; }
+.details-table td:not(:first-child) { white-space: nowrap; }
+.details-table small { display: block; color: var(--muted); }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 @media (max-width: 720px) { .header-inner { align-items: flex-start; flex-direction: column; padding: 16px 0; } .main-nav { flex-wrap: wrap; gap: 12px; } .main-content { padding-top: 28px; } .hero { grid-template-columns: 1fr; padding: 28px 24px; gap: 24px; } .folder-grid { grid-template-columns: 1fr; } .auth-card, .detail-card { padding: 24px; } .section-heading, .account-row { flex-wrap: wrap; } }

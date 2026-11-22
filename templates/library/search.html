@@ -3,6 +3,7 @@
 {% block title %}搜索{% endblock %}
 
 {% block content %}
+{% include 'library/view_toggle.html' %}
 <section class="page-heading">
     <p class="eyebrow">资源库</p>
     <h1>搜索资料</h1>
@@ -25,6 +26,8 @@
 </section>
 
 {% if has_searched %}
+    {% include 'library/details.html' with folders=folders documents=file_page show_path=True only %}
+    <div data-icon-view>
     {% if folders %}
         <section class="search-result-section" aria-labelledby="folder-results-title">
             <h2 id="folder-results-title">文件夹 <small class="muted">{{ folders|length }}</small></h2>
@@ -53,6 +56,9 @@
                     </a>
                 {% endfor %}
             </div>
+        </section>
+    {% endif %}
+    </div>
             {% if file_page.has_other_pages %}
                 <nav class="pagination" aria-label="文件搜索结果分页">
                     {% if file_page.has_previous %}<a href="?{{ filter_query }}&page={{ file_page.previous_page_number }}">上一页</a>{% endif %}
@@ -60,8 +66,6 @@
                     {% if file_page.has_next %}<a href="?{{ filter_query }}&page={{ file_page.next_page_number }}">下一页</a>{% endif %}
                 </nav>
             {% endif %}
-        </section>
-    {% endif %}
     {% if not folders and not file_page.paginator.count %}
         <div class="empty-state compact"><h2>没有找到匹配的资料</h2><p>试试其他关键词或筛选条件。</p></div>
     {% endif %}

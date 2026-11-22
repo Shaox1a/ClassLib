@@ -7,7 +7,22 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from .forms import AccountCreationForm
+from django.contrib.auth.views import LoginView as DjangoLoginView
+from django.http import JsonResponse
 from .models import User
+
+
+class LoginView(DjangoLoginView):
+    def form_invalid(self, form):
+        if self.request.headers.get('X-Login-Form') == '1':
+            return JsonResponse({'error': '用户名或密码不正确，请重试。'}, status=400)
+        return super().form_invalid(form)
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        if self.request.headers.get('X-Login-Form') == '1':
+            return JsonResponse({'redirect': self.get_success_url()})
+        return response
 
 
 def administrator_required(view):

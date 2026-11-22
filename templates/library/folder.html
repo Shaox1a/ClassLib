@@ -1,8 +1,10 @@
 {% extends 'base.html' %}
 
-{% block title %}{{ folder.name }}{% endblock %}
+{% block title %}{{ folder.name }}</div>
+{% endblock %}
 
 {% block content %}
+{% include 'library/view_toggle.html' %}
 <nav class="breadcrumb" aria-label="当前位置">
     <a href="{% url 'library:home' %}">资源库</a>
     {% for item in breadcrumbs %} / <a href="{% url 'library:folder' item.pk %}">{{ item.name }}</a>{% endfor %}
@@ -21,6 +23,8 @@
     {% endif %}
 </section>
 
+{% include 'library/details.html' with folders=subfolders documents=files only %}
+<div data-icon-view>
 {% if subfolders %}
     <h2>子文件夹</h2>
     <div class="folder-grid">
@@ -49,4 +53,5 @@
         <div class="empty-state compact"><p>这个文件夹还没有文件。</p></div>
     {% endif %}
 </section>
+</div>
 {% endblock %}

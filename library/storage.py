@@ -1,6 +1,5 @@
 """Private object storage, separate from metadata and permissions."""
 
-from io import BytesIO
 import json
 from urllib.error import HTTPError
 from urllib.parse import quote
@@ -44,11 +43,28 @@ def signed_download(key, filename):
     return url + '&download=' + quote(filename, safe='')
 
 
+def object_size(key):
+    with urlopen(_request(key, 'HEAD', operation='authenticated/'), timeout=30) as response:
+        return int(response.headers['Content-Length'])
+
+
+def copy_object(source, destination):
+    request = _request('', 'POST')
+    request.full_url = settings.SUPABASE_URL.rstrip('/') + '/storage/v1/object/copy'
+    request.data = json.dumps({'bucketId': settings.SUPABASE_BUCKET,
+                               'sourceKey': source, 'destinationKey': destination}).encode()
+    request.add_header('Content-Type', 'application/json')
+    with urlopen(request, timeout=120):
+        pass
+
+
 def save(key, uploaded_file):
     uploaded_file.seek(0)
     if not settings.SUPABASE_URL:
         return _local().save(key, uploaded_file)
-    with urlopen(_request(key, 'POST', uploaded_file.read()), timeout=120):
+    request = _request(key, 'POST', uploaded_file)
+    request.add_header('Content-Length', str(uploaded_file.size))
+    with urlopen(request, timeout=120):
         return key
 
 
@@ -67,11 +83,7 @@ def open_file(key):
     if not settings.SUPABASE_URL:
         return _local().open(key, 'rb')
     try:
-        with urlopen(_request(key, 'GET'), timeout=120) as response:
-            data = response.read(settings.MAX_UPLOAD_SIZE + 1)
-            if len(data) > settings.MAX_UPLOAD_SIZE:
-                raise ValueError('文件不能超过 50 MiB。')
-            return BytesIO(data)
+        return urlopen(_request(key, 'GET'), timeout=120)
     except HTTPError as exc:
         if exc.code == 404:
             raise FileNotFoundError(key) from exc

@@ -46,29 +46,29 @@ class DirectUploadTests(TestCase):
         open_file.assert_not_called()
 
     @patch('library.storage.delete')
-    @patch('library.storage.save', side_effect=lambda key, uploaded: key)
-    @patch('library.storage.open_file')
+    @patch('library.storage.copy_object')
+    @patch('library.storage.object_size', return_value=5 * 1024 * 1024)
     def test_large_upload_validated_and_retry_does_not_duplicate(self, open_file, save, delete):
         content = b'a' * (5 * 1024 * 1024)
-        open_file.return_value = BytesIO(content)
         ticket = self.ticket(size=len(content))
         response = self.client.post(self.finish_url, {'ticket': ticket})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(File.objects.get().size, len(content))
-        self.assertEqual(save.call_args.args[0], 'test-key.txt')
+        self.assertEqual(save.call_args.args, ('pending/test-key.txt', 'test-key.txt'))
         delete.assert_called_once_with('pending/test-key.txt')
         self.assertEqual(self.client.post(self.finish_url, {'ticket': ticket}).json(), response.json())
         self.assertEqual(File.objects.count(), 1)
         self.assertEqual(save.call_count, 1)
 
     @patch('library.storage.delete')
-    @patch('library.storage.save')
-    @patch('library.storage.open_file', side_effect=lambda key: BytesIO(b'hello'))
-    def test_mismatched_size_and_disguised_content_are_rejected(self, open_file, save, delete):
-        for ticket in [self.ticket(size=100), self.ticket(name='fake.pdf')]:
+    @patch('library.storage.copy_object')
+    @patch('library.storage.object_size', return_value=5)
+    def test_mismatched_size_is_rejected_but_disguised_content_allowed(self, open_file, save, delete):
+        for ticket in [self.ticket(size=100)]:
             self.assertEqual(self.client.post(self.finish_url, {'ticket': ticket}).status_code, 400)
         self.assertFalse(File.objects.exists())
         save.assert_not_called()
+        self.assertEqual(self.client.post(self.finish_url, {'ticket': self.ticket(name='fake.pdf')}).status_code, 200)
 
     @patch('library.storage.signed_download', return_value='https://example.supabase.co/object/sign/file?token=short')
     def test_download_authentication_precedes_signing(self, sign):

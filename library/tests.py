@@ -176,18 +176,18 @@ class LibraryTests(TestCase):
         self.assertFalse(File.objects.filter(pk=document.pk).exists())
         self.assertFalse(stored_path.exists())
 
-    def test_invalid_uploads_and_duplicate_names_are_rejected(self):
+    def test_any_type_and_duplicate_names(self):
         self.client.force_login(self.teacher)
         response = self.upload_text(self.child, 'fake.pdf', b'not a pdf')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 302)
         response = self.upload_text(self.child, 'script.exe', b'MZ')
-        self.assertEqual(response.status_code, 200)
-        self.assertFalse(File.objects.exists())
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(File.objects.count(), 2)
 
         self.upload_text(self.child)
         duplicate = self.upload_text(self.child)
         self.assertEqual(duplicate.status_code, 200)
-        self.assertEqual(File.objects.count(), 1)
+        self.assertEqual(File.objects.count(), 3)
 
     def test_pdf_and_docx_content_are_accepted(self):
         self.client.force_login(self.teacher)
@@ -232,12 +232,12 @@ class LibraryTests(TestCase):
         self.assertEqual(document.folder, self.child)
 
     @override_settings(MAX_UPLOAD_SIZE=4)
-    def test_upload_size_limit_is_enforced(self):
+    def test_obsolete_upload_size_limit_is_ignored(self):
         self.client.force_login(self.teacher)
         response = self.upload_text(self.child, content=b'12345')
 
-        self.assertEqual(response.status_code, 200)
-        self.assertFalse(File.objects.exists())
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(File.objects.get().size, 5)
 
     def test_missing_file_content_returns_404(self):
         self.client.force_login(self.teacher)

@@ -163,12 +163,8 @@ if not DEBUG:
     CSRF_COOKIE_SECURE = True
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in os.getenv('DJANGO_CSRF_TRUSTED_ORIGINS', '').split(',') if origin.strip()]
-MAX_UPLOAD_SIZE = 50 * 1024 * 1024  # 50 MiB per file
-FILE_UPLOAD_HANDLERS = [
-    'library.upload_handlers.SizeLimitUploadHandler',
-    'django.core.files.uploadhandler.MemoryFileUploadHandler',
-    'django.core.files.uploadhandler.TemporaryFileUploadHandler',
-]
+# Stream local uploads to disk rather than buffering whole files.
+FILE_UPLOAD_HANDLERS = ['django.core.files.uploadhandler.TemporaryFileUploadHandler']
 
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'

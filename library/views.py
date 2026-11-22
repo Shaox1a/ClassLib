@@ -1,9 +1,10 @@
 from urllib.parse import urlencode
+from uuid import UUID
 
 from django.contrib import messages
 from django.conf import settings
 from django.core.paginator import Paginator
-from django.http import FileResponse, Http404
+from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
@@ -120,6 +121,15 @@ def folder_delete(request, folder_id):
 @library_permission_required('upload')
 def file_upload(request, folder_id):
     folder = get_object_or_404(Folder, pk=folder_id)
+    upload_key = None
+    if request.method == 'POST' and request.headers.get('X-Upload-Id'):
+        try:
+            upload_key = f'local-{request.user.pk}-' + UUID(request.headers['X-Upload-Id']).hex
+        except ValueError:
+            return JsonResponse({'error': '上传标识无效。'}, status=400)
+        existing = File.objects.filter(storage_key=upload_key, uploader=request.user, folder=folder).first()
+        if existing:
+            return JsonResponse({'redirect': reverse('library:file', args=[existing.pk])})
     form = UploadForm(
         request.POST if request.method == 'POST' else None,
         request.FILES if request.method == 'POST' else None,
@@ -131,9 +141,14 @@ def file_upload(request, folder_id):
             uploaded_file=form.cleaned_data['upload'],
             name=form.file_name,
             uploader=request.user,
+            storage_key=upload_key,
         )
+        if request.headers.get('X-Upload-Queue') == '1':
+            return JsonResponse({'redirect': reverse('library:file', args=[document.pk])})
         messages.success(request, '文件已上传。')
         return redirect('library:file', file_id=document.pk)
+    if request.method == 'POST' and request.headers.get('X-Upload-Queue') == '1':
+        return JsonResponse({'error': ' '.join(str(e) for errors in form.errors.values() for e in errors)}, status=400)
     return edit_page(request, title=f'上传到 {folder.name}', form=form,
                      back_url=reverse('library:folder', args=[folder.pk]),
                      submit_label='上传', is_upload=True)
