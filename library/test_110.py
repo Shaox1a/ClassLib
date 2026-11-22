@@ -41,6 +41,8 @@ class UpgradeTests(TestCase):
             response=self.client.get(url)
             self.assertContains(response,'修改日期')
             self.assertContains(response,'data-details-view')
+            title = response.content.decode().split('<title>', 1)[1].split('</title>', 1)[0]
+            self.assertNotIn('</div>', title)
 
     @override_settings(SUPABASE_URL='https://example.supabase.co')
     @patch('library.storage.signed_upload',return_value='https://example.supabase.co/upload?token=limited')
