@@ -7,7 +7,7 @@ from django.core.management.base import CommandError
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from .models import PermissionGroup, User
+from accounts.models import PermissionGroup, User
 
 
 class AuthenticationPageTests(TestCase):

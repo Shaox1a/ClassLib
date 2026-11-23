@@ -17,19 +17,6 @@
 
 数据库使用 Supabase PostgreSQL 的 `classlib` schema，私有 bucket 默认为 `classlib-private`。需要数据库迁移的发布，先备份并核对迁移计划，从有生产变量的受控终端执行 `python manage.py migrate`。新结构须兼容当前线上版本，待旧版本退出后再清理旧结构。新表应启用 RLS。账户导入和替换见[账户与权限组](accounts.md)。
 
-首次从旧 SQLite 与私有目录导入资料时，使用 `scripts/legacy/deploy_data.py` 的 `verify`、`export`、`migrate`、`files`、`audit` 子命令。历史标签清理工具 `scripts/legacy/upgrade_release.py` 仅用于对应旧版本。历史工具从仓库根目录的私有 `.env` 读取连接信息，备份与导出位于 `deploy-private/`。日常发布使用上面的候选构建流程。
+维护 1.0 旧实例时，首次 SQLite 导入及标签清理工具可从对应版本查阅。[v1.0.0 历史工具](https://github.com/Shaox1a/ClassLib/tree/v1.0.0/scripts)
 
-## 自动化检查
-
-GitHub Actions 在临时 SQLite 数据库中运行单元测试，存储接口使用测试替身或临时目录。可用同样的命令复现，无需运行本地网站或提供生产凭据。
-
-```sh
-python -m pip install -r requirements.txt
-python manage.py makemigrations --check --dry-run --settings=config.test_settings
-python manage.py test accounts library --settings=config.test_settings
-python scripts/audit_secrets.py
-```
-
-仓库审计覆盖当前文件、HEAD、已获取的分支、标签及 PR 引用。维护者本机若有私有 `账户.md`，还会对照部署端清单检查旧版本和提交消息，输出仅标记命中的文件或对象。干净的 CI 环境只运行凭据格式和忽略规则检查。若需把本机工具快照与备份引用也纳入审计，使用 `python scripts/audit_secrets.py --all-refs`。
-
-`scripts/smoke_production.py` 是可选的生产端到端写入检查，创建临时用户、会话、文件和文件夹，需要生产数据库、私有存储访问和根目录私有 `.env`。日常候选验收使用上面的只读检查。
+提交前的单元测试和仓库审计命令见 [README 的验证步骤](../README.md#验证改动)。

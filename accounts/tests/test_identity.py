@@ -11,8 +11,8 @@ from django.test import Client, TestCase
 from django.urls import reverse
 
 from library.models import File, Folder
-from .management.commands.sync_accounts import read_roster
-from .models import PermissionGroup, User
+from accounts.management.commands.sync_accounts import read_roster
+from accounts.models import PermissionGroup, User
 
 
 class IdentityTests(TestCase):
@@ -84,6 +84,14 @@ class IdentityTests(TestCase):
         response = self.client.post(reverse('accounts:login'), {'username': '同学甲', 'password': 'wrong-keep'}, HTTP_X_LOGIN_FORM='1')
         self.assertEqual(response.status_code, 400)
         self.assertNotIn('wrong-keep', response.content.decode())
+
+    def test_login_ignores_external_redirect(self):
+        response = self.client.post(
+            reverse('accounts:login') + '?next=https://example.invalid/',
+            {'username': self.user.username, 'password': 'old-secret-123'},
+            HTTP_X_LOGIN_FORM='1',
+        )
+        self.assertEqual(response.json()['redirect'], '/')
 
 
 class AdministrationTests(TestCase):
@@ -327,6 +335,7 @@ class RosterTests(TestCase):
         with patch.object(Path, 'read_text', return_value=ROSTER):
             rows = read_roster(Path('unused'), 'production')
             self.assertEqual({row[0] for row in rows}, {'root', 'fixture-student-a'})
-        with self.settings(DATABASES={'default': {'ENGINE': 'django.db.backends.postgresql'}}):
+        with patch('accounts.management.commands.sync_accounts.settings') as command_settings:
+            command_settings.DATABASES = {'default': {'ENGINE': 'django.db.backends.postgresql'}}
             with self.assertRaises(CommandError):
                 call_command('sync_accounts', 'unused', environment='local', replace=True, stdout=StringIO())
