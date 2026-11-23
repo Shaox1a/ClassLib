@@ -7,7 +7,7 @@ from pathlib import Path
 import sys
 from uuid import uuid4
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 for line in (ROOT / '.env').read_text(encoding='utf-8-sig').splitlines():
     if line.strip() and not line.lstrip().startswith('#') and '=' in line:
@@ -15,7 +15,7 @@ for line in (ROOT / '.env').read_text(encoding='utf-8-sig').splitlines():
         os.environ[key.strip()] = value.strip().strip('\"\'')
 mode = sys.argv[1]
 if mode == 'export':
-    os.environ.pop('DATABASE_URL', None)
+    os.environ['DJANGO_SETTINGS_MODULE'] = 'scripts.legacy.export_settings'
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 import django
 django.setup()

@@ -1,4 +1,9 @@
 .git/
+.github/
+docs/
+*.pem
+*.key
+*.log
 deploy-private/
 scripts/
 .venv/

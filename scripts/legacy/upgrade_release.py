@@ -9,7 +9,7 @@ import sys
 parser = argparse.ArgumentParser()
 parser.add_argument('action', choices=['backup', 'migrate'])
 action = parser.parse_args().action
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 for line in (ROOT / '.env').read_text(encoding='utf-8-sig').splitlines():
     if '=' in line and not line.lstrip().startswith('#'):

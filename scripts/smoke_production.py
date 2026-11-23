@@ -119,7 +119,7 @@ try:
     except HTTPError as error:
         assert error.code == 403
     with get(student, f'/file/{document.pk}/download/') as response:
-        assert urlparse(response.url).hostname == 'imrtztgljhjphbuajptk.supabase.co'
+        assert urlparse(response.url).hostname == urlparse(os.environ['SUPABASE_URL']).hostname
         assert hashlib.sha256(response.read()).digest() == hashlib.sha256(content).digest()
     checks.append('Student upload denied; authenticated signed download matches content')
     original = File.objects.exclude(folder=folder).first()
