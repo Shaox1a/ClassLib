@@ -3,7 +3,6 @@
 {% block title %}资源库{% endblock %}
 
 {% block content %}
-{% include 'library/view_toggle.html' %}
 <section class="hero">
     <div>
         <p class="eyebrow">班级学习资料库</p>
@@ -19,9 +18,10 @@
 
 <section aria-labelledby="folders-title">
     <div class="section-heading">
-        <div><h2 id="folders-title">文件夹</h2><span class="muted">{{ folders|length }} 个根目录文件夹</span></div>
+        <h2 id="folders-title">文件夹</h2>
         {% if can_manage %}<a class="button" href="{% url 'library:folder_create_root' %}">新建文件夹</a>{% endif %}
     </div>
+    {% include 'library/view_toggle.html' %}
     {% if folders %}
         {% include 'library/details.html' with folders=folders only %}
         <div class="folder-grid" data-icon-view>
