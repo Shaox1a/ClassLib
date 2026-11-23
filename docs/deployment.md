@@ -30,4 +30,6 @@ python manage.py test accounts library --settings=config.test_settings
 python scripts/audit_secrets.py
 ```
 
+仓库审计覆盖当前文件、HEAD、已获取的分支、标签及 PR 引用。维护者本机若有私有 `账户.md`，还会对照部署端清单检查旧版本和提交消息，输出仅标记命中的文件或对象。干净的 CI 环境只运行凭据格式和忽略规则检查。若需把本机工具快照与备份引用也纳入审计，使用 `python scripts/audit_secrets.py --all-refs`。
+
 `scripts/smoke_production.py` 是可选的生产端到端写入检查，创建临时用户、会话、文件和文件夹，需要生产数据库、私有存储访问和根目录私有 `.env`。日常候选验收使用上面的只读检查。

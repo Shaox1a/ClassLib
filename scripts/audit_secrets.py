@@ -1,4 +1,5 @@
 """Check ignore rules and Git blobs without printing credential values."""
+import argparse
 import json
 from pathlib import Path
 import re
@@ -28,7 +29,14 @@ for path in paths:
     assert not git('ls-files', '--', path).strip(), f'Sensitive path tracked: {path}'
 assert '.env.example' in git('ls-files', '--', '.env.example').decode()
 
-objects = git('rev-list', '--objects', '--all').decode().splitlines()
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--all-refs', action='store_true',
+                    help='Include private local references such as tool snapshots and backup refs')
+args = parser.parse_args()
+refs = ['--all'] if args.all_refs else [
+    'HEAD', '--branches', '--remotes', '--tags', '--glob=refs/pull/*', '--glob=refs/audit/pull/*',
+]
+objects = git('rev-list', '--objects', *refs).decode().splitlines()
 ids = sorted({line.split(' ', 1)[0] for line in objects})
 types = git('cat-file', '--batch-check', input=('\n'.join(ids)+'\n').encode()).decode().splitlines()
 blobs = [line.split()[0] for line in types if line.split()[1] == 'blob']
@@ -42,10 +50,12 @@ pattern = re.compile(
 def inspect(data, label):
     if any(secret in data for secret in secrets) or pattern.search(data):
         findings.append(label)
+    if any(rule.search(data) for rule in roster_patterns):
+        findings.append('private roster match: ' + label)
 
 
 def private_roster_patterns():
-    """Compare the working tree to the private production roster when available."""
+    """Match private records without printing the values or copying them into Git."""
     roster = ROOT / '账户.md'
     patterns = []
     production = False
@@ -59,15 +69,17 @@ def private_roster_patterns():
             identity, nickname, password = fields
             patterns.append(re.compile(rb'\s+'.join(re.escape(v.encode()) for v in fields)))
             if identity not in ('root', 'teacher', 'student'):
-                for value in (identity, password):
+                for value in {identity, nickname, password}:
                     patterns.append(re.compile(rb'(?<![\w-])' + re.escape(value.encode()) + rb'(?![\w-])'))
+            elif password != identity:
+                patterns.append(re.compile(re.escape(password.encode())))
     return patterns
 
 
+roster_patterns = private_roster_patterns()
 for oid in blobs:
     inspect(git('cat-file', 'blob', oid), 'history-blob:' + oid)
-inspect(git('log', '--all', '--format=%B'), 'commit messages')
-roster_patterns = private_roster_patterns()
+inspect(git('log', *refs, '--format=%B'), 'commit messages')
 for raw_path in git('ls-files', '--cached', '--others', '--exclude-standard', '-z').split(b'\0'):
     if raw_path:
         path = ROOT / raw_path.decode()
@@ -75,8 +87,8 @@ for raw_path in git('ls-files', '--cached', '--others', '--exclude-standard', '-
             data = path.read_bytes()
             label = str(path.relative_to(ROOT))
             inspect(data, label)
-            if any(rule.search(data) for rule in roster_patterns):
-                findings.append('private roster match: ' + label)
-assert not findings, 'Credential matches found in: ' + ', '.join(findings)
+if findings:
+    raise SystemExit('Sensitive data matches found in: ' + ', '.join(findings))
 print(json.dumps({'ignored_sensitive_paths': len(paths), 'history_blobs_checked': len(blobs),
-                  'credential_matches': 0, 'env_example_tracked': True}))
+                  'credential_matches': 0, 'private_roster_checked': bool(roster_patterns),
+                  'env_example_tracked': True}))
