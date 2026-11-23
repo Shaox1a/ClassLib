@@ -1,0 +1,12 @@
+<div class="item-grid" data-icon-view>
+  {% for folder in folders %}
+    <a class="item-card" href="{% url 'library:folder' folder.pk %}" title="{{ folder.name }}" aria-label="打开文件夹：{{ folder.name }}">
+      <span class="item-icon" aria-hidden="true">📁</span><span class="item-name">{{ folder.name }}</span>
+    </a>
+  {% endfor %}
+  {% for document in documents %}
+    <a class="item-card" href="{% url 'library:file' document.pk %}" title="{{ document.name }}" aria-label="打开文件：{{ document.name }}">
+      <span class="item-icon" aria-hidden="true">📄</span><span class="item-name">{{ document.name }}</span>
+    </a>
+  {% endfor %}
+</div>

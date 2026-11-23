@@ -6,6 +6,8 @@ from django.db.models import Q
 
 class Folder(models.Model):
     name = models.CharField(max_length=120)
+    uploader = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
+                                 on_delete=models.SET_NULL, related_name='created_folders')
     parent = models.ForeignKey(
         'self', null=True, blank=True, related_name='children', on_delete=models.CASCADE
     )

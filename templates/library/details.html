@@ -2,13 +2,17 @@
 <div data-details-view hidden class="details-scroll">
 <table class="details-table">
   <caption class="sr-only">资料详细信息</caption>
-  <thead><tr><th scope="col">名称</th><th scope="col">修改日期</th><th scope="col">类型</th><th scope="col">大小</th></tr></thead>
+  <thead><tr>
+    <th scope="col"{% if sort_column == 'name' %} aria-sort="{% if sort_direction == 'asc' %}ascending{% else %}descending{% endif %}"{% endif %}>名称 <a class="sort-button" href="{{ sort_name_url }}" aria-label="按名称{% if sort_column == 'name' and sort_direction == 'asc' %}倒序{% else %}正序{% endif %}" title="切换名称排序">{% if sort_column == 'name' and sort_direction == 'desc' %}▼{% else %}▲{% endif %}</a></th>
+    <th scope="col"{% if sort_column == 'date' %} aria-sort="{% if sort_direction == 'asc' %}ascending{% else %}descending{% endif %}"{% endif %}>上传日期 <a class="sort-button" href="{{ sort_date_url }}" aria-label="按上传日期{% if sort_column == 'date' and sort_direction == 'desc' %}由远及近{% else %}由近及远{% endif %}" title="切换上传日期排序">{% if sort_column == 'date' and sort_direction == 'asc' %}▲{% else %}▼{% endif %}</a></th>
+    <th scope="col">类型</th><th scope="col">大小</th><th scope="col">上传者</th>
+  </tr></thead>
   <tbody>
   {% for folder in folders %}
-    <tr><td><a href="{% url 'library:folder' folder.pk %}">📁 {{ folder.name }}</a>{% if show_path %}<small>{{ folder.path }}</small>{% endif %}</td><td>{{ folder.updated_at|date:'Y-m-d H:i' }}</td><td>文件夹</td><td>—</td></tr>
+    <tr><td><a href="{% url 'library:folder' folder.pk %}">📁 {{ folder.name }}</a>{% if show_path %}<small>{{ folder.path }}</small>{% endif %}</td><td>{{ folder.created_at|date:'Y-m-d H:i' }}</td><td>文件夹</td><td>—</td><td>{{ folder.uploader.username|default:'—' }}</td></tr>
   {% endfor %}
   {% for document in documents %}
-    <tr><td><a href="{% url 'library:file' document.pk %}">📄 {{ document.name }}</a>{% if show_path %}<small>{{ document.folder.path }}</small>{% endif %}</td><td>{{ document.updated_at|date:'Y-m-d H:i' }}</td><td>{{ document.name|file_type }}</td><td title="{{ document.size }} 字节">{{ document.size|byte_size }}</td></tr>
+    <tr><td><a href="{% url 'library:file' document.pk %}">📄 {{ document.name }}</a>{% if show_path %}<small>{{ document.folder.path }}</small>{% endif %}</td><td>{{ document.created_at|date:'Y-m-d H:i' }}</td><td>{{ document.name|file_type }}</td><td title="{{ document.size }} 字节">{{ document.size|byte_size }}</td><td>{{ document.uploader.username }}</td></tr>
   {% endfor %}
   </tbody>
 </table>

@@ -4,7 +4,7 @@
 
 当前版本为 **1.1.0**，发布说明见 [CHANGELOG.md](CHANGELOG.md)。已移除标签功能，搜索保留名称和学科筛选。
 
-1.1.0 新增：允许任意文件类型且不设应用层大小上限、多文件上传、新增四列详细信息列表，以及登录失败时在当前页面保留密码输入。大文件采用流式/分块处理，生产存储仍受 Supabase 套餐上限约束。具体交互和验收标准见 [1.1.0 优化方案](docs/1.1.0-plan.md)。
+1.1.0 新增：允许任意文件类型且不设应用层大小上限、多文件上传、详细信息列表，以及登录失败时在当前页面保留密码输入。列表包含名称、上传日期、类型、大小和上传者；名称和上传日期支持正倒序，默认最新上传优先，文件夹始终排在文件前面。大图标使用三列等尺寸卡片。大文件采用流式/分块处理，生产存储仍受 Supabase 套餐上限约束。具体交互和验收标准见 [1.1.0 优化方案](docs/1.1.0-plan.md)。
 
 从旧版本升级时，先备份并部署新代码，再执行数据库迁移。生产备份与升级可分别运行 `python scripts/upgrade_release.py backup` 和 `python scripts/upgrade_release.py migrate`；本地使用 `python manage.py migrate`。历史迁移文件必须保留。`python scripts/audit_secrets.py` 检查密钥忽略规则和 Git 历史，`python scripts/smoke_production.py` 验证生产功能并自动清理临时测试数据。
 

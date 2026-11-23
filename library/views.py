@@ -17,6 +17,7 @@ from .permissions import has_permission, library_permission_required
 from .search import search_library
 from .services import create_file, delete_file, delete_folder, open_download
 from . import storage
+from .browsing import sort_options
 
 
 def can_manage(user):
@@ -44,21 +45,25 @@ def edit_page(request, *, title, form, back_url, submit_label='保存', is_uploa
 
 @library_permission_required('view')
 def home(request):
-    folders = Folder.objects.filter(parent__isnull=True)
+    ordering, sorting = sort_options(request)
+    folders = Folder.objects.filter(parent__isnull=True).select_related('uploader').order_by(*ordering)
     return render(request, 'library/home.html', {
         'folders': folders,
+        **sorting,
         'can_manage': can_manage(request.user),
     })
 
 
 @library_permission_required('view')
 def folder_detail(request, folder_id):
+    ordering, sorting = sort_options(request)
     folder = get_object_or_404(Folder, pk=folder_id)
     return render(request, 'library/folder.html', {
         'folder': folder,
         'breadcrumbs': folder_breadcrumbs(folder),
-        'subfolders': folder.children.all(),
-        'files': folder.files.select_related('uploader'),
+        'subfolders': folder.children.select_related('uploader').order_by(*ordering),
+        **sorting,
+        'files': folder.files.select_related('uploader').order_by(*ordering),
         'can_manage': can_manage(request.user),
     })
 
@@ -70,6 +75,7 @@ def folder_create(request, parent_id=None):
     if request.method == 'POST' and form.is_valid():
         folder = form.save(commit=False)
         folder.parent = parent
+        folder.uploader = request.user
         folder.save()
         messages.success(request, '文件夹已创建。')
         return redirect('library:folder', folder_id=folder.pk)
@@ -236,6 +242,7 @@ def selected_filter(model, raw_id, **filters):
 
 @library_permission_required('view')
 def search(request):
+    ordering, sorting = sort_options(request)
     query = request.GET.get('q', '').strip()[:200]
     subject = selected_filter(Folder, request.GET.get('subject'), parent__isnull=True)
     has_searched = bool(query or subject)
@@ -243,15 +250,20 @@ def search(request):
     file_page = None
     if has_searched:
         folders, files = search_library(query=query, subject=subject)
+        folders = folders.select_related('uploader').order_by(*ordering)
+        files = files.order_by(*ordering)
         file_page = Paginator(files, 20).get_page(request.GET.get('page'))
 
     filter_query = urlencode({
         key: value for key, value in {
             'q': query,
             'subject': subject.pk if subject else '',
+            'sort': sorting['sort_column'],
+            'direction': sorting['sort_direction'],
         }.items() if value
     })
     return render(request, 'library/search.html', {
+        **sorting,
         'query': query,
         'subjects': Folder.objects.filter(parent__isnull=True),
         'selected_subject': subject,

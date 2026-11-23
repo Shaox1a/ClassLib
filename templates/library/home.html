@@ -17,23 +17,18 @@
 </section>
 
 <section aria-labelledby="folders-title">
-    <div class="section-heading">
-        <h2 id="folders-title">文件夹</h2>
-        {% if can_manage %}<a class="button" href="{% url 'library:folder_create_root' %}">新建文件夹</a>{% endif %}
-    </div>
-    {% include 'library/view_toggle.html' %}
-    {% if folders %}
-        {% include 'library/details.html' with folders=folders only %}
-        <div class="folder-grid" data-icon-view>
-            {% for folder in folders %}
-                <a class="folder-card" href="{% url 'library:folder' folder.id %}">
-                    <span class="folder-icon" aria-hidden="true">📁</span>
-                    <span><strong>{{ folder.name }}</strong><small>打开文件夹</small></span>
-                </a>
-            {% endfor %}
+    <h2 id="folders-title">资源库</h2>
+    <div class="browser-toolbar">
+        <div class="browser-actions">
+            {% if can_manage %}<a class="button" href="{% url 'library:folder_create_root' %}">新建文件夹</a>{% endif %}
         </div>
+        {% include 'library/view_toggle.html' %}
+    </div>
+    {% if folders %}
+        {% include 'library/details.html' %}
+        {% include 'library/cards.html' %}
     {% else %}
-        <div class="empty-state"><h2>还没有文件夹</h2><p>教师可以创建第一个学科文件夹。</p></div>
+        <div class="empty-state"><p>还没有文件夹。</p></div>
     {% endif %}
 </section>
 {% endblock %}
