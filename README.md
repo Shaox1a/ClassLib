@@ -1,12 +1,14 @@
-# ClassLib 1.1
+# ClassLib 1.2
 
-正式站点：[classlib-theta.vercel.app](https://classlib-theta.vercel.app/)。使用原有 ClassLib 班级账号登录。
+正式站点：[classlib-theta.vercel.app](https://classlib-theta.vercel.app/)。使用班级账户的 ID 或昵称登录。
 
-当前版本为 **1.1.0**，发布说明见 [CHANGELOG.md](CHANGELOG.md)。已移除标签功能，搜索保留名称和学科筛选。
+当前版本为 **1.2.0**，发布说明见 [CHANGELOG.md](CHANGELOG.md)。已移除标签功能，搜索保留名称和学科筛选。
+
+1.2.0 新增：固定 ID + 唯一昵称 + 密码哈希 + 可编辑权限组，支持 ID/昵称登录、个人账户信息、管理员批量操作与权限组管理；文件夹内支持多选后批量移动、删除。窄屏工具栏分组换行，静态资源使用内容版本号防止旧缓存。清单和迁移规则见 [账户与权限组](docs/accounts.md)。
 
 1.1.0 新增：允许任意文件类型且不设应用层大小上限、多文件上传、详细信息列表，以及登录失败时在当前页面保留密码输入。列表包含名称、上传日期、类型、大小和上传者；名称和上传日期支持正倒序，默认最新上传优先，文件夹始终排在文件前面。大图标使用三列等尺寸卡片。大文件采用流式/分块处理，生产存储仍受 Supabase 套餐上限约束。具体交互和验收标准见 [1.1.0 优化方案](docs/1.1.0-plan.md)。
 
-从旧版本升级时，先备份并部署新代码，再执行数据库迁移。生产备份与升级可分别运行 `python scripts/upgrade_release.py backup` 和 `python scripts/upgrade_release.py migrate`；本地使用 `python manage.py migrate`。历史迁移文件必须保留。`python scripts/audit_secrets.py` 检查密钥忽略规则和 Git 历史，`python scripts/smoke_production.py` 验证生产功能并自动清理临时测试数据。
+从旧版本升级时，先备份，准备待发布构建，再执行数据库迁移并切换生产流量。1.2.0 账户清单的切换规则见 [账户与权限组](docs/accounts.md)；`scripts/upgrade_release.py` 仅适用于历史标签清理，不用于此次账户升级。本地使用 `python manage.py migrate`。历史迁移文件必须保留。`python scripts/audit_secrets.py` 检查密钥忽略规则和 Git 历史，`python scripts/smoke_production.py` 验证生产功能并自动清理临时测试数据。
 
 ClassLib 是面向班级内部的私有学习资料库。项目分为 Django 主体和存储层：主体负责账号、权限、页面和元数据；存储层在本地使用 SQLite 与私有目录，在生产环境使用 Supabase Postgres 与私有 Storage bucket。
 

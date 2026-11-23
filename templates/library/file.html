@@ -14,12 +14,12 @@
     <dl class="file-meta">
         <div><dt>大小</dt><dd>{{ document.size|filesizeformat }}</dd></div>
         <div><dt>类型</dt><dd>{{ document.mime_type }}</dd></div>
-        <div><dt>上传者</dt><dd>{{ document.uploader.username }}</dd></div>
+        <div><dt>上传者</dt><dd>{{ document.uploader.nickname }}</dd></div>
         <div><dt>上传时间</dt><dd>{{ document.created_at|date:"Y-m-d H:i" }}</dd></div>
         <div><dt>更新时间</dt><dd>{{ document.updated_at|date:"Y-m-d H:i" }}</dd></div>
     </dl>
     <div class="action-bar">
-        <a class="button" href="{% url 'library:file_download' document.pk %}">下载文件</a>
+        {% if can_download %}<a class="button" href="{% url 'library:file_download' document.pk %}">下载文件</a>{% endif %}
         {% if can_manage %}
             <a href="{% url 'library:file_rename' document.pk %}">重命名</a>
             <a href="{% url 'library:file_move' document.pk %}">移动</a>

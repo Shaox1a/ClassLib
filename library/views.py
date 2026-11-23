@@ -65,6 +65,7 @@ def folder_detail(request, folder_id):
         **sorting,
         'files': folder.files.select_related('uploader').order_by(*ordering),
         'can_manage': can_manage(request.user),
+        'can_upload': has_permission(request.user, 'upload'),
     })
 
 
@@ -169,6 +170,7 @@ def file_detail(request, file_id):
         'document': document,
         'breadcrumbs': folder_breadcrumbs(document.folder),
         'can_manage': can_manage(request.user),
+        'can_download': has_permission(request.user, 'download'),
     })
 
 

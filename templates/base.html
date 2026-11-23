@@ -1,11 +1,11 @@
-{% load static %}
+{% load assets %}
 <!doctype html>
 <html lang="zh-CN">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}ClassLib{% endblock %} · ClassLib</title>
-    <link rel="stylesheet" href="{% static 'css/site.css' %}">
+    <link rel="stylesheet" href="{% asset 'css/site.css' %}">
 </head>
 <body>
     <header class="site-header">
@@ -15,11 +15,14 @@
                 <a href="{% url 'library:home' %}">资源库</a>
                 <a href="{% url 'library:search' %}">搜索</a>
                 {% if user.is_authenticated %}
-                    {% if user.role == 'admin' or user.is_superuser %}
-                        <a href="{% url 'accounts:list' %}">账号管理</a>
+                    {% if user.permission_group.can_manage_accounts %}
+                        <a href="{% url 'accounts:list' %}">账户管理</a>
                     {% endif %}
-                    <a href="{% url 'accounts:password_change' %}">修改密码</a>
-                    <span class="nav-user">{{ user.get_username }}</span>
+                    {% if user.permission_group.can_manage_groups %}
+                        <a href="{% url 'accounts:groups' %}">权限组管理</a>
+                    {% endif %}
+                    <a href="{% url 'accounts:profile' %}">账户信息</a>
+                    <span class="nav-user">{{ user.nickname }}</span>
                     <form action="{% url 'accounts:logout' %}" method="post" class="inline-form">
                         {% csrf_token %}
                         <button type="submit" class="button button-link">退出</button>
@@ -35,7 +38,7 @@
         {% block content %}{% endblock %}
     </main>
     <footer class="site-footer">
-        <div class="container">ClassLib 1.1 · 班级内部学习资料库</div>
+        <div class="container">ClassLib 1.2 · 班级内部学习资料库</div>
     </footer>
 </body>
 </html>

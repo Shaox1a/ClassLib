@@ -1,6 +1,7 @@
 from django.urls import path
 
 from . import views
+from .bulk import folder_bulk
 from . import direct_upload
 
 
@@ -13,6 +14,7 @@ urlpatterns = [
     path('folder/<int:parent_id>/new/', views.folder_create, name='folder_create_child'),
     path('folder/<int:folder_id>/rename/', views.folder_rename, name='folder_rename'),
     path('folder/<int:folder_id>/move/', views.folder_move, name='folder_move'),
+    path('folder/<int:folder_id>/bulk/', folder_bulk, name='folder_bulk'),
     path('folder/<int:folder_id>/delete/', views.folder_delete, name='folder_delete'),
     path('folder/<int:folder_id>/upload/', views.file_upload, name='file_upload'),
     path('folder/<int:folder_id>/upload/begin/', direct_upload.begin, name='upload_begin'),

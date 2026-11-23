@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}权限组管理{% endblock %}
+{% block content %}
+<div class="section-heading">
+    <div><p class="eyebrow">管理员</p><h1>权限组管理</h1></div>
+    <a class="button" href="{% url 'accounts:group_create' %}">添加权限组</a>
+</div>
+<div class="group-list">
+{% for group in groups %}
+    <section class="group-card">
+        <div class="section-heading"><div><h2>{{ group.name }}</h2><span class="muted">{{ group.member_count }} 个账户</span></div>
+            <div class="group-actions"><a href="{% url 'accounts:group_edit' group.pk %}">编辑</a><a class="danger-link" href="{% url 'accounts:group_delete' group.pk %}">删除</a></div>
+        </div>
+        <ul class="permission-list">
+            {% if group.can_view %}<li>浏览资料</li>{% endif %}
+            {% if group.can_download %}<li>下载文件</li>{% endif %}
+            {% if group.can_upload %}<li>上传文件</li>{% endif %}
+            {% if group.can_manage %}<li>管理资料</li>{% endif %}
+            {% if group.can_manage_accounts %}<li>管理账户</li>{% endif %}
+            {% if group.can_manage_groups %}<li>管理权限组</li>{% endif %}
+            {% if not group.can_view and not group.can_download and not group.can_upload and not group.can_manage and not group.can_manage_accounts and not group.can_manage_groups %}<li>无权限</li>{% endif %}
+        </ul>
+    </section>
+{% endfor %}
+</div>
+{% endblock %}

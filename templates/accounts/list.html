@@ -1,34 +1,36 @@
 {% extends 'base.html' %}
+{% load assets %}
 
-{% block title %}账号管理{% endblock %}
+{% block title %}账户管理{% endblock %}
 
 {% block content %}
 <div class="section-heading">
-    <div><p class="eyebrow">管理员</p><h1>账号管理</h1></div>
-    <a class="button" href="{% url 'accounts:create' %}">创建账号</a>
+    <div><p class="eyebrow">管理员</p><h1>账户管理</h1></div>
+    <a class="button" href="{% url 'accounts:create' %}">创建账户</a>
 </div>
-<div class="account-list">
-    {% for account in users %}
-        <div class="account-row">
-            <div>
-                <strong>{{ account.username }}</strong>
-                <span class="muted">{{ account.get_role_display }} · {% if account.is_active %}已启用{% else %}已停用{% endif %}</span>
-            </div>
-            {% if account.role != 'admin' and not account.is_superuser %}
-                <form method="post" action="{% url 'accounts:status' account.id %}">
-                    {% csrf_token %}
-                    {% if account.is_active %}
-                        <input type="hidden" name="action" value="deactivate">
-                        <button class="button button-secondary" type="submit">停用</button>
-                    {% else %}
-                        <input type="hidden" name="action" value="activate">
-                        <button class="button" type="submit">启用</button>
-                    {% endif %}
-                </form>
-            {% endif %}
-        </div>
-    {% empty %}
-        <p class="empty-state">暂无账号。</p>
-    {% endfor %}
-</div>
+<form method="post" action="{% url 'accounts:bulk' %}" data-account-selection>
+    {% csrf_token %}
+    <div class="bulk-toolbar">
+        <label class="checkbox-label"><input type="checkbox" data-select-all> 全选</label>
+        <span class="muted" data-selection-count aria-live="polite">已选 0 个</span>
+        <label for="id_action" class="sr-only">批量操作</label>{{ bulk_form.action }}
+        <label for="id_permission_group" class="sr-only">目标权限组</label>{{ bulk_form.permission_group }}
+        <button class="button" type="submit" data-bulk-submit disabled>执行批量操作</button>
+    </div>
+    <p class="muted">重置密码后，每个所选账户的密码都恢复为其 ID。</p>
+    {% for field in bulk_form %}{% for error in field.errors %}<p class="field-error" role="alert">{{ field.label }}：{{ error }}</p>{% endfor %}{% endfor %}
+    {% for error in bulk_form.non_field_errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}
+    <div class="details-scroll">
+        <table class="details-table account-table">
+            <thead><tr><th>选择</th><th>ID</th><th>昵称</th><th>权限组</th><th>状态</th><th>操作</th></tr></thead>
+            <tbody>{% for account in users %}<tr>
+                <td><input type="checkbox" name="selected" value="{{ account.pk }}" aria-label="选择 {{ account.account_id }}" {% if account.pk|stringformat:'s' in selected_ids %}checked{% endif %}></td>
+                <td>{{ account.account_id }}</td><td>{{ account.nickname }}</td><td>{{ account.permission_group.name }}</td>
+                <td>{% if account.is_active %}已启用{% else %}已停用{% endif %}</td>
+                <td><a class="table-action" href="{% url 'accounts:edit' account.pk %}">编辑</a></td>
+            </tr>{% empty %}<tr><td colspan="6">暂无账户。</td></tr>{% endfor %}</tbody>
+        </table>
+    </div>
+</form>
+<script src="{% asset 'js/accounts.js' %}" defer></script>
 {% endblock %}

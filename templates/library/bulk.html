@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% block title %}{% if action == 'move' %}批量移动{% else %}批量删除{% endif %}{% endblock %}
+{% block content %}
+<section class="auth-card">
+    <h1>{% if action == 'move' %}批量移动{% else %}批量删除{% endif %}</h1>
+    {% if error %}<p role="alert">{{ error }}</p>{% endif %}
+    {% if count %}
+    <p>已从“{{ source.name }}”选择 {{ count }} 项</p>
+    <ul>
+        {% for item in folders %}<li>📁 {{ item.name }}</li>{% endfor %}
+        {% for item in files %}<li>📄 {{ item.name }}</li>{% endfor %}
+    </ul>
+    <form method="post" class="stack-form">
+        {% csrf_token %}
+        <input type="hidden" name="folders" value="{{ folder_ids }}">
+        <input type="hidden" name="files" value="{{ file_ids }}">
+        <input type="hidden" name="action" value="{{ action }}">
+        <input type="hidden" name="confirm" value="1">
+        {% if action == 'move' %}
+        <label for="destination">目标位置</label>
+        <select name="destination" id="destination" required>
+            <option value="">请选择目标位置</option>
+            {% if not files %}<option value="root">根目录</option>{% endif %}
+            {% for item in destinations %}<option value="{{ item.pk }}">{{ item.path }}</option>{% endfor %}
+        </select>
+        {% if files and not destinations %}<p>当前没有可移动到的文件夹。</p>{% endif %}
+        {% else %}
+        <p>删除后无法恢复。{% if folders %}所选文件夹中的全部子文件夹和文件也会被删除。{% endif %}</p>
+        {% endif %}
+        <div class="action-bar">
+            {% if action == 'move' %}<button class="button" {% if files and not destinations %}disabled{% endif %}>确认移动</button>
+            {% else %}<button class="button button-danger">确认删除</button>{% endif %}
+            <a href="{% url 'library:folder' source.pk %}">取消</a>
+        </div>
+    </form>
+    {% else %}<a href="{% url 'library:folder' source.pk %}">返回文件夹</a>{% endif %}
+</section>
+{% endblock %}

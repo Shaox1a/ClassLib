@@ -7,7 +7,7 @@ from django.core.management.base import CommandError
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from .models import User
+from .models import PermissionGroup, User
 
 
 class AuthenticationPageTests(TestCase):
@@ -72,11 +72,13 @@ class AccountManagementTests(TestCase):
     def test_superuser_has_admin_role(self):
         self.assertEqual(self.admin.role, User.Role.ADMIN)
 
-    def test_superuser_can_open_user_admin(self):
+    def test_native_admin_is_read_only_and_cannot_show_password_hash(self):
         self.client.force_login(self.admin)
 
         self.assertEqual(self.client.get(reverse('admin:accounts_user_changelist')).status_code, 200)
-        self.assertEqual(self.client.get(reverse('admin:accounts_user_add')).status_code, 200)
+        self.assertEqual(self.client.get(reverse('admin:accounts_user_add')).status_code, 403)
+        response = self.client.get(reverse('admin:accounts_user_change', args=[self.admin.pk]))
+        self.assertNotContains(response, self.admin.password)
 
     def test_teacher_cannot_manage_accounts(self):
         self.client.force_login(self.teacher)
@@ -95,27 +97,20 @@ class AccountManagementTests(TestCase):
         self.assertEqual(self.client.get(reverse('accounts:list')).status_code, 200)
         self.assertEqual(self.client.get(reverse('accounts:create')).status_code, 200)
 
-    def test_admin_creates_student_and_teacher_only(self):
+    def test_admin_creates_accounts_in_any_permission_group(self):
         self.client.force_login(self.admin)
         create_url = reverse('accounts:create')
-        for username, role in [('student1', User.Role.STUDENT), ('teacher1', User.Role.TEACHER)]:
+        for username, role in [('student1', User.Role.STUDENT), ('teacher1', User.Role.TEACHER), ('manager1', User.Role.ADMIN)]:
+            group = PermissionGroup.objects.get(key=role)
             response = self.client.post(create_url, {
                 'username': username,
-                'role': role,
-                'password1': 'member-password-123',
-                'password2': 'member-password-123',
+                'nickname': username + '昵称',
+                'permission_group': group.pk,
+                'new_password1': 'member-password-123',
+                'new_password2': 'member-password-123',
             })
             self.assertRedirects(response, reverse('accounts:list'))
             self.assertEqual(User.objects.get(username=username).role, role)
-
-        response = self.client.post(create_url, {
-            'username': 'rogue',
-            'role': User.Role.ADMIN,
-            'password1': 'member-password-123',
-            'password2': 'member-password-123',
-        })
-        self.assertEqual(response.status_code, 200)
-        self.assertFalse(User.objects.filter(username='rogue').exists())
 
     def test_admin_can_disable_and_enable_member(self):
         self.client.force_login(self.admin)
@@ -165,7 +160,7 @@ class StudentImportTests(TestCase):
         with patch.object(Path, 'read_text', return_value=source_text):
             call_command('import_students', 'unused.md', stdout=output)
 
-        self.assertEqual(User.objects.filter(role=User.Role.STUDENT).count(), 2)
+        self.assertEqual(User.objects.filter(permission_group__key=User.Role.STUDENT).count(), 2)
         self.assertTrue(User.objects.get(username='alice').check_password('strong-password-123'))
         self.assertNotIn('strong-password-123', output.getvalue())
         self.assertNotIn('another-password-456', output.getvalue())

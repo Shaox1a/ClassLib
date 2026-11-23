@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<p class="breadcrumb"><a href="{% url back %}">返回</a> / {{ title }}</p>
+<section class="auth-card account-form-card">
+    <h1>{{ title }}</h1>
+    {% if account %}<p><span class="muted">ID</span> <strong>{{ account.account_id }}</strong> <small class="muted">不可修改</small></p>{% endif %}
+    {% if note %}<p class="muted">{{ note }}</p>{% endif %}
+    <form method="post" class="stack-form">
+        {% csrf_token %}
+        {% include 'accounts/fields.html' %}
+        <button class="button{% if '删除' in title %} button-danger{% endif %}" type="submit">{% if '删除' in title %}确认删除{% else %}保存{% endif %}</button>
+    </form>
+</section>
+{% endblock %}

@@ -1,6 +1,6 @@
-{% load static %}
+{% load assets %}
 <div class="view-toggle" role="group" aria-label="显示方式">
   <button type="button" data-view="icons" aria-pressed="true">大图标</button>
   <button type="button" data-view="details" aria-pressed="false">列表</button>
 </div>
-<script src="{% static 'js/view.js' %}" defer></script>
+<script src="{% asset 'js/view.js' %}" defer></script>

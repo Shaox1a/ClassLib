@@ -19,7 +19,7 @@ password = unquote(urlparse(env.get('DATABASE_URL', '')).password or '')
 if len(password) > 9:
     secrets.append(password.encode())
 paths = ['.env', '.env.production', '.env.local', '.vercel/project.json',
-         'deploy-private/data.json', 'db.sqlite3', 'private_files/test.txt', '账户.txt']
+         'deploy-private/data.json', 'db.sqlite3', 'private_files/test.txt', '账户.txt', '账户.md']
 for path in paths:
     git('check-ignore', '--quiet', path)
     assert not git('ls-files', '--', path).strip(), f'Sensitive path tracked: {path}'

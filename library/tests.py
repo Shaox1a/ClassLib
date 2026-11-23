@@ -61,6 +61,49 @@ class LibraryTests(TestCase):
             self.assertTrue(response.url.startswith(reverse('accounts:login')))
         self.assertEqual(self.client.get(f'/private_files/{document.storage_key}').status_code, 404)
 
+    def test_mixed_bulk_move_checks_selection_target_and_conflicts_before_moving(self):
+        self.client.force_login(self.teacher)
+        self.upload_text(self.root)
+        document = self.root.files.get()
+        target = Folder.objects.create(name='其他资料')
+        nested = Folder.objects.create(name='第一章', parent=self.child)
+        url = reverse('library:folder_bulk', args=[self.root.pk])
+        data = {'folders': str(self.child.pk), 'files': str(document.pk), 'action': 'move'}
+        self.assertContains(self.client.post(url, data), '确认移动')
+        for destination in (self.child.pk, nested.pk, self.root.pk, 'root'):
+            response = self.client.post(url, {**data, 'destination': destination, 'confirm': '1'})
+            self.assertEqual(response.status_code, 400)
+        data.update(destination=target.pk, confirm='1')
+        self.upload_text(target)
+        self.assertContains(self.client.post(url, data), '已有同名文件', status_code=400)
+        self.assertTrue(self.root.children.filter(pk=self.child.pk).exists())
+        target.files.update(name='另一份.txt')
+        self.assertEqual(self.client.post(url, data).status_code, 302)
+        self.assertTrue(target.files.filter(pk=document.pk).exists())
+        self.assertTrue(target.children.filter(pk=self.child.pk).exists())
+        self.assertTrue(self.child.children.filter(pk=nested.pk).exists())
+
+    def test_bulk_delete_requires_management_and_current_children_and_cleans_storage(self):
+        self.client.force_login(self.teacher)
+        self.upload_text(self.child)
+        self.upload_text(self.root)
+        keys = list(File.objects.values_list('storage_key', flat=True))
+        url = reverse('library:folder_bulk', args=[self.root.pk])
+        data = {'folders': str(self.child.pk), 'files': str(self.root.files.get().pk), 'action': 'delete'}
+        self.assertContains(self.client.post(url, data), '删除后无法恢复')
+        data['confirm'] = '1'
+        self.client.force_login(self.student)
+        self.assertEqual(self.client.post(url, data).status_code, 403)
+        self.client.force_login(self.teacher)
+        self.assertEqual(self.client.post(url, {**data, 'files': str(self.child.files.get().pk)}).status_code, 400)
+        self.assertEqual(File.objects.count(), 2)
+        with self.captureOnCommitCallbacks(execute=True):
+            self.assertEqual(self.client.post(url, data).status_code, 302)
+        self.assertFalse(File.objects.exists())
+        self.assertFalse(self.root.children.exists())
+        for key in keys:
+            self.assertFalse((Path(settings.PRIVATE_FILE_ROOT) / key).exists())
+
     def test_student_can_browse_and_download_but_cannot_manage(self):
         self.client.force_login(self.teacher)
         self.upload_text(self.child)

@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load assets %}
 
 {% block title %}{{ title }}{% endblock %}
 
@@ -20,5 +20,5 @@
         {% if is_upload %}<p data-upload-status role="status" aria-live="polite"></p><ul data-upload-items></ul><a href="{{ back_url }}">返回文件夹</a>{% endif %}
     </form>
 </section>
-{% if is_upload %}<script src="{% static 'js/upload.js' %}" defer></script>{% endif %}
+{% if is_upload %}<script src="{% asset 'js/upload.js' %}" defer></script>{% endif %}
 {% endblock %}

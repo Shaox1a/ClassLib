@@ -3,14 +3,6 @@ from functools import wraps
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 
-from accounts.models import User
-
-
-ROLE_PERMISSIONS = {
-    User.Role.STUDENT: frozenset({'view', 'download'}),
-    User.Role.TEACHER: frozenset({'view', 'download', 'upload', 'manage'}),
-    User.Role.ADMIN: frozenset({'view', 'download', 'upload', 'manage'}),
-}
 LIBRARY_ACTIONS = frozenset({'view', 'download', 'upload', 'manage'})
 
 
@@ -19,7 +11,7 @@ def has_permission(user, action):
         raise ValueError(f'Unknown library action: {action}')
     return bool(
         user.is_authenticated and user.is_active
-        and (user.is_superuser or action in ROLE_PERMISSIONS.get(user.role, ()))
+        and getattr(user.permission_group, f'can_{action}', False)
     )
 
 
