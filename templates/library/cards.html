@@ -1,3 +1,4 @@
+{% load file_display %}
 <div class="item-grid" data-icon-view>
   {% for folder in folders %}
     <a class="item-card" {% if selectable %}data-bulk-kind="folders" data-bulk-id="{{ folder.pk }}" {% endif %}href="{% url 'library:folder' folder.pk %}" title="{{ folder.name }}" aria-label="打开文件夹：{{ folder.name }}">
@@ -5,8 +6,15 @@
     </a>
   {% endfor %}
   {% for document in documents %}
-    <a class="item-card" {% if selectable %}data-bulk-kind="files" data-bulk-id="{{ document.pk }}" {% endif %}href="{% url 'library:file' document.pk %}" title="{{ document.name }}" aria-label="打开文件：{{ document.name }}">
-      <span class="item-icon" aria-hidden="true">📄</span><span class="item-name">{{ document.name }}</span>
-    </a>
+    {% if document|is_image_file %}
+      <a class="item-card item-card-image" {% if selectable %}data-bulk-kind="files" data-bulk-id="{{ document.pk }}" {% endif %}href="{% url 'library:file' document.pk %}" title="{{ document.name }}" aria-label="打开图片：{{ document.name }}">
+        <img class="item-thumb" src="{% url 'library:file_preview' document.pk %}" alt="" loading="lazy" decoding="async">
+        <span class="item-name">{{ document.name }}</span>
+      </a>
+    {% else %}
+      <a class="item-card" {% if selectable %}data-bulk-kind="files" data-bulk-id="{{ document.pk }}" {% endif %}href="{% url 'library:file' document.pk %}" title="{{ document.name }}" aria-label="打开文件：{{ document.name }}">
+        <span class="item-icon" aria-hidden="true">📄</span><span class="item-name">{{ document.name }}</span>
+      </a>
+    {% endif %}
   {% endfor %}
 </div>

@@ -43,6 +43,10 @@ def signed_download(key, filename):
     return url + '&download=' + quote(filename, safe='')
 
 
+def signed_inline(key):
+    return _sign(key, 'sign/', {'expiresIn': 300}, 'signedURL')
+
+
 def object_size(key):
     with urlopen(_request(key, 'HEAD', operation='authenticated/'), timeout=30) as response:
         return int(response.headers['Content-Length'])

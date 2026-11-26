@@ -6,8 +6,8 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from accounts.models import User
-from .direct_upload import SALT
-from .models import File, Folder
+from library.direct_upload import SALT
+from library.models import File, Folder
 
 
 @override_settings(SUPABASE_URL='https://example.supabase.co', SUPABASE_SERVICE_ROLE_KEY='sb_secret_test')

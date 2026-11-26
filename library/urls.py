@@ -20,6 +20,7 @@ urlpatterns = [
     path('folder/<int:folder_id>/upload/begin/', direct_upload.begin, name='upload_begin'),
     path('folder/<int:folder_id>/upload/finish/', direct_upload.finish, name='upload_finish'),
     path('file/<int:file_id>/', views.file_detail, name='file'),
+    path('file/<int:file_id>/preview/', views.file_preview, name='file_preview'),
     path('file/<int:file_id>/download/', views.file_download, name='file_download'),
     path('file/<int:file_id>/rename/', views.file_rename, name='file_rename'),
     path('file/<int:file_id>/move/', views.file_move, name='file_move'),

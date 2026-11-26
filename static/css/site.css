@@ -10,7 +10,8 @@ a { color: inherit; text-decoration: none; }
 .header-inner { flex-wrap: wrap; padding-top: 12px; padding-bottom: 12px; }
 .main-nav { flex-wrap: wrap; gap: 12px 18px; }
 .main-nav a:hover { color: var(--brand); }
-.nav-user { color: var(--ink); font-size: .95rem; }
+.nav-user { color: var(--ink); font-size: .95rem; font-weight: 600; }
+.nav-user:hover { color: var(--brand); }
 .inline-form { display: inline; }
 .main-content { min-height: calc(100vh - 128px); padding-top: 48px; padding-bottom: 64px; }
 .hero { display: grid; grid-template-columns: 1fr minmax(280px, 380px); gap: 40px; align-items: end; padding: 48px; margin-bottom: 48px; border-radius: 20px; color: #fff; background: linear-gradient(135deg, #2d4fc7, #6b7fe1); box-shadow: 0 14px 35px rgb(49 87 213 / 18%); }
@@ -24,6 +25,18 @@ h2 { font-size: 1.5rem; }
 .search-form input { min-width: 0; flex: 1; }
 input { width: 100%; padding: 11px 13px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit; }
 input:focus { outline: 3px solid rgb(49 87 213 / 20%); border-color: var(--brand); }
+.password-field { position: relative; display: block; width: 100%; }
+.password-field input { padding-right: 46px; }
+/* Hide the browser's built-in password reveal so only our toggle remains. */
+.password-field input::-ms-reveal,
+.password-field input::-ms-clear { display: none; width: 0; height: 0; }
+.password-field input::-webkit-credentials-auto-fill-button,
+.password-field input::-webkit-strong-password-auto-fill-button { visibility: hidden; pointer-events: none; position: absolute; right: 0; }
+.password-field input::-webkit-textfield-decoration-container { display: none; }
+.password-toggle { position: absolute; top: 50%; right: 4px; display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 6px; color: var(--muted); background: transparent; cursor: pointer; transform: translateY(-50%); }
+.password-toggle:hover { color: var(--brand); background: #edf0f7; }
+.password-toggle:focus-visible { outline: 3px solid rgb(49 87 213 / 20%); outline-offset: 1px; }
+.password-toggle svg { width: 20px; height: 20px; pointer-events: none; }
 .button { display: inline-flex; align-items: center; justify-content: center; padding: 11px 18px; border: 0; border-radius: 8px; color: #fff; background: var(--brand); cursor: pointer; font: inherit; font-weight: 650; }
 .button:hover { background: #2648bb; }
 .button-small { padding: 6px 12px; color: #fff !important; }
@@ -73,6 +86,17 @@ input:focus { outline: 3px solid rgb(49 87 213 / 20%); border-color: var(--brand
 .file-arrow { color: var(--muted); font-size: 1.5rem; }
 .detail-card { padding: 32px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); }
 .detail-card h1 { overflow-wrap: anywhere; }
+.file-preview-header { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+.file-preview-header h1 { margin: 0; flex: 1 1 240px; }
+.file-preview-actions { margin-top: 0; flex: 0 1 auto; }
+.file-preview-frame { margin-bottom: 24px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: #f9fafc; }
+.file-preview-frame iframe,
+.file-preview-pdf { display: block; width: 100%; height: min(75vh, 880px); border: 0; background: #fff; }
+.file-preview-frame img { display: block; max-width: 100%; height: auto; margin: 0 auto; padding: 16px; }
+.file-preview-frame video { display: block; width: 100%; max-height: min(75vh, 720px); background: #000; }
+.file-preview-frame audio { display: block; width: 100%; padding: 20px 16px; }
+.file-preview-unavailable { margin-bottom: 24px; padding: 28px 20px; border: 1px dashed #cbd3e0; border-radius: 12px; text-align: center; background: var(--surface); }
+.file-preview-unavailable p { margin: 0 0 16px; color: var(--muted); }
 .file-meta { display: grid; gap: 10px; max-width: 560px; margin: 24px 0; }
 .file-meta div { display: grid; grid-template-columns: 100px 1fr; gap: 16px; }
 .file-meta dt { color: var(--muted); }
@@ -139,6 +163,13 @@ input[type=checkbox] { width: 18px; height: 18px; padding: 0; accent-color: var(
 .item-card:focus-visible, .sort-button:focus-visible { outline: 3px solid var(--brand); outline-offset: 3px; }
 .item-icon { font-size: 2rem; line-height: 1.2; }
 .item-name { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; text-align: center; line-height: 1.5; max-height: 3em; width: 100%; }
+.item-card-image { padding: 0; gap: 0; justify-content: flex-start; overflow: hidden; }
+.item-card-image .item-thumb { display: block; width: 100%; height: 112px; object-fit: cover; background: #eef1f6; }
+.item-card-image .item-name { padding: 8px 10px 10px; text-align: center; }
+.details-file-link { display: inline-flex; align-items: center; gap: 10px; max-width: 100%; }
+.details-thumb { width: 44px; height: 44px; object-fit: cover; border-radius: 8px; flex: 0 0 auto; background: #eef1f6; border: 1px solid var(--line); }
+.details-file-icon { flex: 0 0 auto; font-size: 1.2rem; line-height: 1; }
+.details-file-name { overflow-wrap: anywhere; }
 .sort-button { display: inline-flex; align-items: center; justify-content: center; min-width: 28px; min-height: 28px; color: var(--muted); font-size: .65rem; vertical-align: middle; }
 .details-table th[aria-sort] .sort-button { color: var(--brand); }
 @media (max-width: 760px) {

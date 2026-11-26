@@ -7,6 +7,8 @@ from django.core.paginator import Paginator
 from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils.http import content_disposition_header
+from django.views.decorators.clickjacking import xframe_options_sameorigin
 
 from .forms import (
     FileMoveForm, FileNameForm, FolderMoveForm, FolderNameForm,
@@ -15,7 +17,7 @@ from .forms import (
 from .models import File, Folder
 from .permissions import has_permission, library_permission_required
 from .search import search_library
-from .services import create_file, delete_file, delete_folder, open_download
+from .services import create_file, delete_file, delete_folder, open_download, preview_kind
 from . import storage
 from .browsing import sort_options
 
@@ -166,12 +168,32 @@ def file_detail(request, file_id):
     document = get_object_or_404(
         File.objects.select_related('folder', 'uploader'), pk=file_id
     )
+    kind = preview_kind(document.name, document.mime_type)
     return render(request, 'library/file.html', {
         'document': document,
         'breadcrumbs': folder_breadcrumbs(document.folder),
+        'preview_kind': kind,
         'can_manage': can_manage(request.user),
         'can_download': has_permission(request.user, 'download'),
     })
+
+
+@library_permission_required('view')
+@xframe_options_sameorigin
+def file_preview(request, file_id):
+    document = get_object_or_404(File, pk=file_id)
+    try:
+        stream = open_download(document.storage_key)
+    except (FileNotFoundError, OSError) as exc:
+        raise Http404('文件内容不存在。') from exc
+    content_type = document.mime_type or 'application/octet-stream'
+    if content_type == 'application/octet-stream' and document.name.lower().endswith('.pdf'):
+        content_type = 'application/pdf'
+    response = FileResponse(stream, as_attachment=False, filename=document.name)
+    response['Content-Type'] = content_type
+    response['Content-Disposition'] = content_disposition_header(False, document.name)
+    response['Cache-Control'] = 'private, no-store'
+    return response
 
 
 @library_permission_required('download')

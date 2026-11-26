@@ -12,7 +12,7 @@
     <tr><td><a {% if selectable %}data-bulk-kind="folders" data-bulk-id="{{ folder.pk }}" {% endif %}href="{% url 'library:folder' folder.pk %}">📁 {{ folder.name }}</a>{% if show_path %}<small>{{ folder.path }}</small>{% endif %}</td><td>{{ folder.created_at|date:'Y-m-d H:i' }}</td><td>文件夹</td><td>—</td><td>{{ folder.uploader.nickname|default:'—' }}</td></tr>
   {% endfor %}
   {% for document in documents %}
-    <tr><td><a {% if selectable %}data-bulk-kind="files" data-bulk-id="{{ document.pk }}" {% endif %}href="{% url 'library:file' document.pk %}">📄 {{ document.name }}</a>{% if show_path %}<small>{{ document.folder.path }}</small>{% endif %}</td><td>{{ document.created_at|date:'Y-m-d H:i' }}</td><td>{{ document.name|file_type }}</td><td title="{{ document.size }} 字节">{{ document.size|byte_size }}</td><td>{{ document.uploader.nickname }}</td></tr>
+    <tr><td class="details-name-cell"><a class="details-file-link" {% if selectable %}data-bulk-kind="files" data-bulk-id="{{ document.pk }}" {% endif %}href="{% url 'library:file' document.pk %}">{% if document|is_image_file %}<img class="details-thumb" src="{% url 'library:file_preview' document.pk %}" alt="" loading="lazy" decoding="async">{% else %}<span class="details-file-icon" aria-hidden="true">📄</span>{% endif %}<span class="details-file-name">{{ document.name }}</span></a>{% if show_path %}<small>{{ document.folder.path }}</small>{% endif %}</td><td>{{ document.created_at|date:'Y-m-d H:i' }}</td><td>{{ document.name|file_type }}</td><td title="{{ document.size }} 字节">{{ document.size|byte_size }}</td><td>{{ document.uploader.nickname }}</td></tr>
   {% endfor %}
   </tbody>
 </table>

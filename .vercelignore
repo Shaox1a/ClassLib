@@ -1,10 +1,16 @@
 .git/
+.github/
+docs/
+*.pem
+*.key
+*.log
 deploy-private/
 scripts/
 .venv/
 .env
 .env.*
-!.env.example
+accounts/tests/
+library/tests/
 db.sqlite3*
 private_files/
 classlib-test-*/

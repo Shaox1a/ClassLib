@@ -13,7 +13,6 @@
             <a class="brand" href="{% url 'library:home' %}">ClassLib</a>
             <nav aria-label="主导航" class="main-nav">
                 <a href="{% url 'library:home' %}">资源库</a>
-                <a href="{% url 'library:search' %}">搜索</a>
                 {% if user.is_authenticated %}
                     {% if user.permission_group.can_manage_accounts %}
                         <a href="{% url 'accounts:list' %}">账户管理</a>
@@ -21,8 +20,7 @@
                     {% if user.permission_group.can_manage_groups %}
                         <a href="{% url 'accounts:groups' %}">权限组管理</a>
                     {% endif %}
-                    <a href="{% url 'accounts:profile' %}">账户信息</a>
-                    <span class="nav-user">{{ user.nickname }}</span>
+                    <a class="nav-user" href="{% url 'accounts:profile' %}">{{ user.nickname }}</a>
                     <form action="{% url 'accounts:logout' %}" method="post" class="inline-form">
                         {% csrf_token %}
                         <button type="submit" class="button button-link">退出</button>
@@ -40,5 +38,6 @@
     <footer class="site-footer">
         <div class="container">ClassLib 1.2 · 班级内部学习资料库</div>
     </footer>
+    <script src="{% asset 'js/password-toggle.js' %}" defer></script>
 </body>
 </html>
