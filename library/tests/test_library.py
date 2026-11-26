@@ -11,8 +11,8 @@ from django.urls import reverse
 
 from accounts.models import User
 
-from .models import File, Folder
-from .permissions import has_permission
+from library.models import File, Folder
+from library.permissions import has_permission
 
 
 class LibraryTests(TestCase):
@@ -219,41 +219,30 @@ class LibraryTests(TestCase):
         self.assertFalse(File.objects.filter(pk=document.pk).exists())
         self.assertFalse(stored_path.exists())
 
-    def test_any_type_and_duplicate_names(self):
+    def test_upload_formats_empty_files_and_duplicate_names(self):
         self.client.force_login(self.teacher)
-        response = self.upload_text(self.child, 'fake.pdf', b'not a pdf')
-        self.assertEqual(response.status_code, 302)
-        response = self.upload_text(self.child, 'script.exe', b'MZ')
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(File.objects.count(), 2)
-
-        self.upload_text(self.child)
-        duplicate = self.upload_text(self.child)
-        self.assertEqual(duplicate.status_code, 200)
-        self.assertEqual(File.objects.count(), 3)
-
-    def test_pdf_and_docx_content_are_accepted(self):
-        self.client.force_login(self.teacher)
-        pdf = SimpleUploadedFile('handout.pdf', b'%PDF-1.4\nexample', content_type='application/pdf')
-        response = self.client.post(reverse('library:file_upload', args=[self.child.pk]), {
-            'upload': pdf,
-        })
-        self.assertEqual(response.status_code, 302)
-
-        content = BytesIO()
-        with ZipFile(content, 'w') as archive:
+        docx = BytesIO()
+        with ZipFile(docx, 'w') as archive:
             archive.writestr('[Content_Types].xml', '<Types/>')
             archive.writestr('word/document.xml', '<document/>')
-        docx = SimpleUploadedFile(
-            'handout.docx', content.getvalue(),
-            content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        )
-        response = self.client.post(reverse('library:file_upload', args=[self.child.pk]), {
-            'upload': docx,
-        })
+        samples = [
+            ('empty', b'', 'application/octet-stream'),
+            ('script.exe', b'MZ', 'application/octet-stream'),
+            ('fake.pdf', b'not a pdf', 'text/plain'),
+            ('handout.pdf', b'%PDF-1.4\nexample', 'application/pdf'),
+            ('handout.docx', docx.getvalue(),
+             'application/vnd.openxmlformats-officedocument.wordprocessingml.document'),
+        ]
+        url = reverse('library:file_upload', args=[self.child.pk])
+        for name, content, mime_type in samples:
+            with self.subTest(name=name):
+                upload = SimpleUploadedFile(name, content, content_type=mime_type)
+                self.assertEqual(self.client.post(url, {'upload': upload}).status_code, 302)
+                self.assertEqual(File.objects.get(folder=self.child, name=name).size, len(content))
 
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(File.objects.count(), 2)
+        duplicate = self.upload_text(self.child, 'fake.pdf')
+        self.assertEqual(duplicate.status_code, 200)
+        self.assertEqual(File.objects.count(), len(samples))
 
     def test_rename_extension_and_move_collision_are_rejected(self):
         self.client.force_login(self.teacher)

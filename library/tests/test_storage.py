@@ -1,6 +1,6 @@
 from django.test import SimpleTestCase, override_settings
 
-from .storage import _request
+from library.storage import _request
 
 
 @override_settings(SUPABASE_URL='https://example.supabase.co', SUPABASE_BUCKET='private')
