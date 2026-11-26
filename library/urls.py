@@ -8,10 +8,13 @@ from . import direct_upload
 app_name = 'library'
 
 urlpatterns = [
-    path('', views.home, name='home'),
+    path('', views.landing, name='landing'),
+    path('library/', views.home, name='home'),
     path('folder/new/', views.folder_create, name='folder_create_root'),
     path('folder/<int:folder_id>/', views.folder_detail, name='folder'),
     path('folder/<int:parent_id>/new/', views.folder_create, name='folder_create_child'),
+    path('folder/reorder/', views.folder_reorder_set, name='folder_reorder_set'),
+    path('folder/<int:folder_id>/reorder/', views.folder_reorder, name='folder_reorder'),
     path('folder/<int:folder_id>/rename/', views.folder_rename, name='folder_rename'),
     path('folder/<int:folder_id>/move/', views.folder_move, name='folder_move'),
     path('folder/<int:folder_id>/bulk/', folder_bulk, name='folder_bulk'),

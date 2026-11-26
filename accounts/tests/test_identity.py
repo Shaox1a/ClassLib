@@ -124,14 +124,19 @@ class AdministrationTests(TestCase):
         self.assertTrue(user.check_password('new-manager'))
         self.assertEqual(user.role, 'admin')
 
-    def test_explicit_new_password_is_validated_against_submitted_id(self):
+    def test_explicit_new_password_requires_at_least_eight_characters(self):
         response = self.client.post(reverse('accounts:create'), {
-            'username': 'long-unique-id', 'nickname': '新人', 'permission_group': self.student.permission_group_id,
-            'new_password1': 'long-unique-id', 'new_password2': 'long-unique-id',
+            'username': 'student-b', 'nickname': '新人', 'permission_group': self.student.permission_group_id,
+            'new_password1': 'short', 'new_password2': 'short',
         })
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.context['form'].errors.get('new_password1'))
-        self.assertFalse(User.objects.filter(username='long-unique-id').exists())
+        self.assertFalse(User.objects.filter(username='student-b').exists())
+        ok = self.client.post(reverse('accounts:create'), {
+            'username': 'student-b', 'nickname': '新人', 'permission_group': self.student.permission_group_id,
+            'new_password1': '12345678', 'new_password2': '12345678',
+        })
+        self.assertRedirects(ok, reverse('accounts:list'))
 
     def test_bulk_reset_is_limited_to_selection_and_invalidates_old_session(self):
         member_client = Client()

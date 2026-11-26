@@ -1,0 +1,5 @@
+<form class="folder-reorder-form" method="post" action="{% url 'library:folder_reorder' folder.pk %}">
+    {% csrf_token %}
+    <button type="submit" class="reorder-button" name="direction" value="up" aria-label="上移 {{ folder.name }}">▲</button>
+    <button type="submit" class="reorder-button" name="direction" value="down" aria-label="下移 {{ folder.name }}">▼</button>
+</form>

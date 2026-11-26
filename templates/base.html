@@ -10,8 +10,9 @@
 <body>
     <header class="site-header">
         <div class="container header-inner">
-            <a class="brand" href="{% url 'library:home' %}">ClassLib</a>
+            <a class="brand" href="{% url 'library:landing' %}">ClassLib</a>
             <nav aria-label="主导航" class="main-nav">
+                <a href="{% url 'library:landing' %}">首页</a>
                 <a href="{% url 'library:home' %}">资源库</a>
                 {% if user.is_authenticated %}
                     {% if user.permission_group.can_manage_accounts %}
@@ -31,7 +32,7 @@
             </nav>
         </div>
     </header>
-    <main class="container main-content">
+    <main class="{% block main_class %}container main-content{% endblock %}">
         {% for message in messages %}<p class="message message-success">{{ message }}</p>{% endfor %}
         {% block content %}{% endblock %}
     </main>

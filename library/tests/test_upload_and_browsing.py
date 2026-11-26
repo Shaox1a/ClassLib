@@ -39,7 +39,7 @@ class UploadAndBrowsingTests(TestCase):
         self.folder.refresh_from_db()
         self.assertGreater(self.folder.updated_at, original)
         Folder.objects.create(name='New child', parent=self.folder)
-        for url in ['/', f'/folder/{self.folder.pk}/', '/search/?q=New']:
+        for url in ['/library/', f'/folder/{self.folder.pk}/', '/search/?q=New']:
             response = self.client.get(url)
             self.assertContains(response, '上传日期')
             self.assertContains(response, 'data-details-view')

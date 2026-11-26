@@ -116,6 +116,35 @@ class LibraryTests(TestCase):
         for key in keys:
             self.assertFalse((Path(settings.PRIVATE_FILE_ROOT) / key).exists())
 
+    def test_folder_reorder_set_accepts_full_order(self):
+        self.client.force_login(self.teacher)
+        bucket = Folder.objects.create(name='SortTest', parent=None, uploader=self.teacher)
+        first = Folder.objects.create(name='Alpha', parent=bucket, uploader=self.teacher, position=0)
+        second = Folder.objects.create(name='Beta', parent=bucket, uploader=self.teacher, position=1)
+        response = self.client.post(
+            reverse('library:folder_reorder_set'),
+            {'parent': str(bucket.pk), 'folders': f'{second.pk},{first.pk}'},
+            HTTP_X_REORDER_FORM='1',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {'ok': True})
+        first.refresh_from_db()
+        second.refresh_from_db()
+        self.assertEqual((first.position, second.position), (1, 0))
+
+    def test_folder_reorder_swaps_sibling_positions(self):
+        self.client.force_login(self.teacher)
+        first = Folder.objects.create(name='Alpha', parent=None, uploader=self.teacher, position=0)
+        second = Folder.objects.create(name='Beta', parent=None, uploader=self.teacher, position=1)
+        response = self.client.post(reverse('library:folder_reorder', args=[second.pk]), {'direction': 'up'})
+        self.assertRedirects(response, reverse('library:home'))
+        first.refresh_from_db()
+        second.refresh_from_db()
+        self.assertEqual((first.position, second.position), (1, 0))
+        home = self.client.get(reverse('library:home'))
+        html = home.content.decode()
+        self.assertLess(html.index('Beta'), html.index('Alpha'))
+
     def test_folder_icon_view_shows_image_thumbnails(self):
         self.client.force_login(self.teacher)
         self.upload_image(self.child)
@@ -378,7 +407,7 @@ class SearchTests(TestCase):
                     f'/file/{self.math_file.pk}/tags/']:
             self.assertEqual(self.client.get(url).status_code, 404)
             self.assertEqual(self.client.post(url, {}).status_code, 404)
-        for url in ['/', reverse('library:file', args=[self.math_file.pk]), reverse('library:search')]:
+        for url in ['/library/', reverse('library:file', args=[self.math_file.pk]), reverse('library:search')]:
             self.assertNotContains(self.client.get(url), '标签')
 
     def test_search_files_are_paginated(self):
@@ -402,3 +431,14 @@ class SearchTests(TestCase):
         self.assertEqual(self.client.get(reverse('library:search'), {
             'subject': self.functions.pk,
         }).status_code, 404)
+
+    def test_landing_welcome_after_login_shows_once(self):
+        response = self.client.post(
+            reverse('accounts:login'),
+            {'username': 'student', 'password': 'student-password'},
+            follow=True,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'data-landing-welcome')
+        again = self.client.get(reverse('library:landing'))
+        self.assertNotContains(again, 'data-landing-welcome')

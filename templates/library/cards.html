@@ -1,9 +1,16 @@
-{% load file_display %}
-<div class="item-grid" data-icon-view>
+{% load assets file_display %}
+<div class="item-grid" data-icon-view{% if show_reorder %} data-reorder-grid data-reorder-url="{% url 'library:folder_reorder_set' %}" data-reorder-parent="{% if reorder_parent %}{{ reorder_parent }}{% endif %}"{% endif %}>
   {% for folder in folders %}
-    <a class="item-card" {% if selectable %}data-bulk-kind="folders" data-bulk-id="{{ folder.pk }}" {% endif %}href="{% url 'library:folder' folder.pk %}" title="{{ folder.name }}" aria-label="打开文件夹：{{ folder.name }}">
-      <span class="item-icon" aria-hidden="true">📁</span><span class="item-name">{{ folder.name }}</span>
-    </a>
+    {% if show_reorder %}
+      <div class="item-card item-card-folder item-card-draggable" {% if selectable %}data-bulk-kind="folders" data-bulk-id="{{ folder.pk }}" {% endif %}data-folder-id="{{ folder.pk }}" data-folder-url="{% url 'library:folder' folder.pk %}" role="link" tabindex="0" title="按住拖动调整顺序；单击打开">
+        <span class="item-icon" aria-hidden="true">📁</span>
+        <span class="item-name">{{ folder.name }}</span>
+      </div>
+    {% else %}
+      <a class="item-card" {% if selectable %}data-bulk-kind="folders" data-bulk-id="{{ folder.pk }}" {% endif %}href="{% url 'library:folder' folder.pk %}" title="{{ folder.name }}" aria-label="打开文件夹：{{ folder.name }}">
+        <span class="item-icon" aria-hidden="true">📁</span><span class="item-name">{{ folder.name }}</span>
+      </a>
+    {% endif %}
   {% endfor %}
   {% for document in documents %}
     {% if document|is_image_file %}
@@ -18,3 +25,4 @@
     {% endif %}
   {% endfor %}
 </div>
+{% if show_reorder %}{% csrf_token %}<script src="{% asset 'js/folder-reorder.js' %}" defer></script>{% endif %}

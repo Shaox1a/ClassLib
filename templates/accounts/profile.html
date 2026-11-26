@@ -7,11 +7,14 @@
         <div><dt>ID</dt><dd>{{ user.account_id }} <small class="muted">不可修改</small></dd></div>
         <div><dt>权限组</dt><dd>{{ user.permission_group.name }}</dd></div>
     </dl>
-    <p class="muted">密码留空时仅更新昵称。修改密码需验证当前密码。</p>
+    <p class="muted">密码留空时仅更新昵称。修改密码需验证当前密码，新密码至少 8 个字符。</p>
     <form method="post" class="stack-form">
         {% csrf_token %}
         {% include 'accounts/fields.html' %}
-        <button class="button" type="submit">保存账户信息</button>
+        <div class="form-actions">
+            <button class="button" type="submit">保存</button>
+            <a class="button button-secondary" href="{% url 'library:landing' %}">返回</a>
+        </div>
     </form>
 </section>
 {% endblock %}
