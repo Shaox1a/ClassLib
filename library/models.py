@@ -11,12 +11,11 @@ class Folder(models.Model):
     parent = models.ForeignKey(
         'self', null=True, blank=True, related_name='children', on_delete=models.CASCADE
     )
-    position = models.PositiveIntegerField(default=0)
     updated_at = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ('position', 'pk')
+        ordering = ('name', 'pk')
         constraints = [
             models.UniqueConstraint(
                 fields=('name',), condition=Q(parent__isnull=True), name='unique_root_folder_name'

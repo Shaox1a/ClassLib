@@ -17,8 +17,6 @@ from django.http import JsonResponse
 from .models import PermissionGroup, User
 from . import services
 
-from library.welcome import SESSION_WELCOME_KEY
-
 
 class LoginView(DjangoLoginView):
     authentication_form = LoginForm
@@ -26,7 +24,7 @@ class LoginView(DjangoLoginView):
     def get_default_redirect_url(self):
         if not self.request.user.permission_group.can_view:
             return reverse('accounts:profile')
-        return reverse('library:landing')
+        return super().get_default_redirect_url()
 
     def form_invalid(self, form):
         if self.request.headers.get('X-Login-Form') == '1':
@@ -35,8 +33,6 @@ class LoginView(DjangoLoginView):
 
     def form_valid(self, form):
         response = super().form_valid(form)
-        if self.request.user.permission_group.can_view:
-            self.request.session[SESSION_WELCOME_KEY] = True
         if self.request.headers.get('X-Login-Form') == '1':
             return JsonResponse({'redirect': self.get_success_url()})
         return response
@@ -111,7 +107,7 @@ def account_create(request):
         else:
             messages.success(request, f'账户 {user.account_id} 已创建。')
             return redirect('accounts:list')
-    return form_page(request, form, '创建账户', note='新密码留空时，默认密码为账户 ID。手动填写时至少 8 个字符。')
+    return form_page(request, form, '创建账户', note='新密码留空时，默认密码为账户 ID。')
 
 
 @administrator_required
@@ -131,7 +127,7 @@ def account_edit(request, user_id):
             messages.success(request, '账户已更新。')
             return management_redirect(request, 'accounts:list')
     return form_page(request, form, '编辑账户', account=user,
-                     note='新密码留空时保留原密码。手动填写时至少 8 个字符。密码仅能重设，无法查看原密码。')
+                     note='新密码留空时保留原密码。密码仅能重设，无法查看原密码。')
 
 
 @administrator_required

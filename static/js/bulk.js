@@ -48,7 +48,7 @@
     form.hidden = !active;
     toggle.setAttribute('aria-expanded', String(active));
     toggle.textContent = active ? '取消多选' : '多选';
-    toggle.parentElement.querySelectorAll('a, .item-card-draggable').forEach(link => { link.hidden = active; });
+    toggle.parentElement.querySelectorAll('a').forEach(link => { link.hidden = active; });
     links.forEach(link => { link.hidden = active; });
     labels.forEach(label => { label.hidden = !active; });
     selected.folders.clear();

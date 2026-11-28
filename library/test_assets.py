@@ -6,7 +6,7 @@ from unittest.mock import patch
 from django.template import Context, Template
 from django.test import SimpleTestCase
 
-from library.templatetags.assets import asset
+from .templatetags.assets import asset
 
 
 class AssetVersionTests(SimpleTestCase):

@@ -7,7 +7,7 @@ from django.core.management.base import CommandError
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from accounts.models import PermissionGroup, User
+from .models import PermissionGroup, User
 
 
 class AuthenticationPageTests(TestCase):
@@ -24,7 +24,7 @@ class AuthenticationPageTests(TestCase):
             {'username': 'student', 'password': 'safe-password'},
         )
 
-        self.assertRedirects(response, reverse('library:landing'))
+        self.assertRedirects(response, reverse('library:home'))
 
     def test_disabled_user_cannot_log_in(self):
         User.objects.create_user(username='disabled', password='safe-password', is_active=False)

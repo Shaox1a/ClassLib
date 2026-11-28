@@ -1,5 +1,4 @@
 {% extends 'base.html' %}
-{% load assets %}
 
 {% block title %}资源库{% endblock %}
 
@@ -22,7 +21,6 @@
     <div class="browser-toolbar">
         <div class="browser-actions">
             {% if can_manage %}<a class="button" href="{% url 'library:folder_create_root' %}">新建文件夹</a>{% endif %}
-            {% if show_reorder %}<p class="muted folder-reorder-hint">按住文件夹拖动可调整顺序；列表视图仍可使用 ▲▼。</p>{% endif %}
         </div>
         {% include 'library/view_toggle.html' %}
     </div>

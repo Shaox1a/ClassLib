@@ -24,4 +24,4 @@ def search_library(*, query, subject=None):
         files = files.filter(folder_id__in=subject_folder_ids)
         folders = folders.filter(pk__in=subject_folder_ids)
 
-    return folders.order_by('position', 'pk'), files.distinct().order_by('-created_at', '-pk')
+    return folders.order_by('name', 'pk'), files.distinct().order_by('-created_at', '-pk')

@@ -13,8 +13,7 @@
       if (response.status === 403) throw new Error('页面凭据已过期，请刷新后重试。');
       const result = await response.json();
       if (!response.ok) throw new Error(result.error);
-      const passwordInput = form.querySelector('input[name="password"]');
-      if (passwordInput) passwordInput.value = '';
+      form.querySelector('[type=password]').value = '';
       window.location.assign(result.redirect);
     } catch (exception) {
       error.textContent = exception.message || '网络错误，请重试。';

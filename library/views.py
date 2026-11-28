@@ -7,9 +7,6 @@ from django.core.paginator import Paginator
 from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.utils.http import content_disposition_header
-from django.views.decorators.clickjacking import xframe_options_sameorigin
-from django.views.decorators.http import require_POST
 
 from .forms import (
     FileMoveForm, FileNameForm, FolderMoveForm, FolderNameForm,
@@ -18,13 +15,9 @@ from .forms import (
 from .models import File, Folder
 from .permissions import has_permission, library_permission_required
 from .search import search_library
-from .services import (
-    create_file, delete_file, delete_folder, open_download, place_folder_at_end, preview_kind,
-    reorder_folder, set_folder_positions,
-)
+from .services import create_file, delete_file, delete_folder, open_download
 from . import storage
-from .browsing import FOLDER_ORDER, sort_options
-from .welcome import SESSION_WELCOME_KEY, pick_welcome_message
+from .browsing import sort_options
 
 
 def can_manage(user):
@@ -50,54 +43,29 @@ def edit_page(request, *, title, form, back_url, submit_label='保存', is_uploa
     })
 
 
-def landing(request):
-    can_browse = (
-        request.user.is_authenticated
-        and has_permission(request.user, 'view')
-    )
-    quick_folders = []
-    if can_browse:
-        quick_folders = list(
-            Folder.objects.filter(parent__isnull=True).order_by(*FOLDER_ORDER)[:8],
-        )
-    welcome_message = None
-    if can_browse and request.session.pop(SESSION_WELCOME_KEY, False):
-        nickname = request.user.nickname or request.user.account_id
-        welcome_message = pick_welcome_message(nickname)
-    return render(request, 'library/landing.html', {
-        'can_browse': can_browse,
-        'quick_folders': quick_folders,
-        'welcome_message': welcome_message,
-    })
-
-
 @library_permission_required('view')
 def home(request):
-    _, sorting = sort_options(request)
-    folders = Folder.objects.filter(parent__isnull=True).select_related('uploader').order_by(*FOLDER_ORDER)
+    ordering, sorting = sort_options(request)
+    folders = Folder.objects.filter(parent__isnull=True).select_related('uploader').order_by(*ordering)
     return render(request, 'library/home.html', {
         'folders': folders,
         **sorting,
         'can_manage': can_manage(request.user),
-        'show_reorder': can_manage(request.user),
-        'reorder_parent': None,
     })
 
 
 @library_permission_required('view')
 def folder_detail(request, folder_id):
-    file_ordering, sorting = sort_options(request)
+    ordering, sorting = sort_options(request)
     folder = get_object_or_404(Folder, pk=folder_id)
     return render(request, 'library/folder.html', {
         'folder': folder,
         'breadcrumbs': folder_breadcrumbs(folder),
-        'subfolders': folder.children.select_related('uploader').order_by(*FOLDER_ORDER),
+        'subfolders': folder.children.select_related('uploader').order_by(*ordering),
         **sorting,
-        'files': folder.files.select_related('uploader').order_by(*file_ordering),
+        'files': folder.files.select_related('uploader').order_by(*ordering),
         'can_manage': can_manage(request.user),
         'can_upload': has_permission(request.user, 'upload'),
-        'show_reorder': can_manage(request.user),
-        'reorder_parent': folder.pk,
     })
 
 
@@ -110,7 +78,6 @@ def folder_create(request, parent_id=None):
         folder.parent = parent
         folder.uploader = request.user
         folder.save()
-        place_folder_at_end(folder)
         messages.success(request, '文件夹已创建。')
         return redirect('library:folder', folder_id=folder.pk)
     back_url = reverse('library:folder', args=[parent.pk]) if parent else reverse('library:home')
@@ -134,42 +101,11 @@ def folder_move(request, folder_id):
     folder = get_object_or_404(Folder, pk=folder_id)
     form = FolderMoveForm(request.POST if request.method == 'POST' else None, instance=folder)
     if request.method == 'POST' and form.is_valid():
-        folder = form.save()
-        place_folder_at_end(folder)
+        form.save()
         messages.success(request, '文件夹已移动。')
         return redirect('library:folder', folder_id=folder.pk)
     return edit_page(request, title='移动文件夹', form=form,
                      back_url=reverse('library:folder', args=[folder.pk]))
-
-
-@library_permission_required('manage')
-@require_POST
-def folder_reorder(request, folder_id):
-    folder = get_object_or_404(Folder, pk=folder_id)
-    if reorder_folder(folder, request.POST.get('direction', '')):
-        messages.success(request, '文件夹顺序已更新。')
-    else:
-        messages.error(request, '已经是第一个或最后一个，无法继续移动。')
-    if folder.parent_id:
-        return redirect('library:folder', folder_id=folder.parent_id)
-    return redirect('library:home')
-
-
-@library_permission_required('manage')
-@require_POST
-def folder_reorder_set(request):
-    parent_raw = request.POST.get('parent', '').strip()
-    parent = get_object_or_404(Folder, pk=parent_raw) if parent_raw else None
-    try:
-        ordered_ids = [int(token) for token in request.POST.get('folders', '').split(',') if token.strip()]
-    except ValueError:
-        return JsonResponse({'error': '顺序无效。'}, status=400)
-    if not set_folder_positions(parent, ordered_ids):
-        return JsonResponse({'error': '顺序无效。'}, status=400)
-    if request.headers.get('X-Reorder-Form') == '1':
-        return JsonResponse({'ok': True})
-    messages.success(request, '文件夹顺序已更新。')
-    return redirect('library:folder', folder_id=parent.pk) if parent else redirect('library:home')
 
 
 @library_permission_required('manage')
@@ -230,32 +166,12 @@ def file_detail(request, file_id):
     document = get_object_or_404(
         File.objects.select_related('folder', 'uploader'), pk=file_id
     )
-    kind = preview_kind(document.name, document.mime_type)
     return render(request, 'library/file.html', {
         'document': document,
         'breadcrumbs': folder_breadcrumbs(document.folder),
-        'preview_kind': kind,
         'can_manage': can_manage(request.user),
         'can_download': has_permission(request.user, 'download'),
     })
-
-
-@library_permission_required('view')
-@xframe_options_sameorigin
-def file_preview(request, file_id):
-    document = get_object_or_404(File, pk=file_id)
-    try:
-        stream = open_download(document.storage_key)
-    except (FileNotFoundError, OSError) as exc:
-        raise Http404('文件内容不存在。') from exc
-    content_type = document.mime_type or 'application/octet-stream'
-    if content_type == 'application/octet-stream' and document.name.lower().endswith('.pdf'):
-        content_type = 'application/pdf'
-    response = FileResponse(stream, as_attachment=False, filename=document.name)
-    response['Content-Type'] = content_type
-    response['Content-Disposition'] = content_disposition_header(False, document.name)
-    response['Cache-Control'] = 'private, no-store'
-    return response
 
 
 @library_permission_required('download')
@@ -328,7 +244,7 @@ def selected_filter(model, raw_id, **filters):
 
 @library_permission_required('view')
 def search(request):
-    file_ordering, sorting = sort_options(request)
+    ordering, sorting = sort_options(request)
     query = request.GET.get('q', '').strip()[:200]
     subject = selected_filter(Folder, request.GET.get('subject'), parent__isnull=True)
     has_searched = bool(query or subject)
@@ -336,8 +252,8 @@ def search(request):
     file_page = None
     if has_searched:
         folders, files = search_library(query=query, subject=subject)
-        folders = folders.select_related('uploader').order_by(*FOLDER_ORDER)
-        files = files.order_by(*file_ordering)
+        folders = folders.select_related('uploader').order_by(*ordering)
+        files = files.order_by(*ordering)
         file_page = Paginator(files, 20).get_page(request.GET.get('page'))
 
     filter_query = urlencode({

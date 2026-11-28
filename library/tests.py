@@ -11,8 +11,8 @@ from django.urls import reverse
 
 from accounts.models import User
 
-from library.models import File, Folder
-from library.permissions import has_permission
+from .models import File, Folder
+from .permissions import has_permission
 
 
 class LibraryTests(TestCase):
@@ -43,17 +43,6 @@ class LibraryTests(TestCase):
             {'upload': SimpleUploadedFile(name, content, content_type='text/plain')},
         )
 
-    def upload_image(self, folder, name='photo.jpg', content=None):
-        if content is None:
-            content = (
-                b'\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00'
-                b'\xff\xd9'
-            )
-        return self.client.post(
-            reverse('library:file_upload', args=[folder.pk]),
-            {'upload': SimpleUploadedFile(name, content, content_type='image/jpeg')},
-        )
-
     def test_anonymous_visitors_are_redirected_from_library_and_download(self):
         self.client.force_login(self.teacher)
         self.upload_text(self.child)
@@ -64,7 +53,6 @@ class LibraryTests(TestCase):
             reverse('library:home'),
             reverse('library:folder', args=[self.child.pk]),
             reverse('library:file', args=[document.pk]),
-            reverse('library:file_preview', args=[document.pk]),
             reverse('library:file_download', args=[document.pk]),
             reverse('library:search'),
         ):
@@ -116,43 +104,6 @@ class LibraryTests(TestCase):
         for key in keys:
             self.assertFalse((Path(settings.PRIVATE_FILE_ROOT) / key).exists())
 
-    def test_folder_reorder_set_accepts_full_order(self):
-        self.client.force_login(self.teacher)
-        bucket = Folder.objects.create(name='SortTest', parent=None, uploader=self.teacher)
-        first = Folder.objects.create(name='Alpha', parent=bucket, uploader=self.teacher, position=0)
-        second = Folder.objects.create(name='Beta', parent=bucket, uploader=self.teacher, position=1)
-        response = self.client.post(
-            reverse('library:folder_reorder_set'),
-            {'parent': str(bucket.pk), 'folders': f'{second.pk},{first.pk}'},
-            HTTP_X_REORDER_FORM='1',
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {'ok': True})
-        first.refresh_from_db()
-        second.refresh_from_db()
-        self.assertEqual((first.position, second.position), (1, 0))
-
-    def test_folder_reorder_swaps_sibling_positions(self):
-        self.client.force_login(self.teacher)
-        first = Folder.objects.create(name='Alpha', parent=None, uploader=self.teacher, position=0)
-        second = Folder.objects.create(name='Beta', parent=None, uploader=self.teacher, position=1)
-        response = self.client.post(reverse('library:folder_reorder', args=[second.pk]), {'direction': 'up'})
-        self.assertRedirects(response, reverse('library:home'))
-        first.refresh_from_db()
-        second.refresh_from_db()
-        self.assertEqual((first.position, second.position), (1, 0))
-        home = self.client.get(reverse('library:home'))
-        html = home.content.decode()
-        self.assertLess(html.index('Beta'), html.index('Alpha'))
-
-    def test_folder_icon_view_shows_image_thumbnails(self):
-        self.client.force_login(self.teacher)
-        self.upload_image(self.child)
-        response = self.client.get(reverse('library:folder', args=[self.child.pk]))
-        document = self.child.files.get()
-        self.assertContains(response, 'item-card-image')
-        self.assertContains(response, reverse('library:file_preview', args=[document.pk]))
-
     def test_student_can_browse_and_download_but_cannot_manage(self):
         self.client.force_login(self.teacher)
         self.upload_text(self.child)
@@ -163,14 +114,7 @@ class LibraryTests(TestCase):
         folder_page = self.client.get(reverse('library:folder', args=[self.child.pk]))
         self.assertContains(folder_page, 'notes.txt')
         self.assertNotContains(folder_page, '上传文件')
-        file_page = self.client.get(reverse('library:file', args=[document.pk]))
-        self.assertContains(file_page, '下载文件')
-        self.assertContains(file_page, reverse('library:file_preview', args=[document.pk]))
-        preview = self.client.get(reverse('library:file_preview', args=[document.pk]))
-        self.assertEqual(preview.status_code, 200)
-        self.assertEqual(b''.join(preview.streaming_content), b'hello class')
-        self.assertEqual(preview['X-Frame-Options'], 'SAMEORIGIN')
-        self.assertIn('inline', preview['Content-Disposition'])
+        self.assertContains(self.client.get(reverse('library:file', args=[document.pk])), '下载文件')
         download = self.client.get(reverse('library:file_download', args=[document.pk]))
         self.assertEqual(download.status_code, 200)
         self.assertEqual(b''.join(download.streaming_content), b'hello class')
@@ -275,30 +219,41 @@ class LibraryTests(TestCase):
         self.assertFalse(File.objects.filter(pk=document.pk).exists())
         self.assertFalse(stored_path.exists())
 
-    def test_upload_formats_empty_files_and_duplicate_names(self):
+    def test_any_type_and_duplicate_names(self):
         self.client.force_login(self.teacher)
-        docx = BytesIO()
-        with ZipFile(docx, 'w') as archive:
+        response = self.upload_text(self.child, 'fake.pdf', b'not a pdf')
+        self.assertEqual(response.status_code, 302)
+        response = self.upload_text(self.child, 'script.exe', b'MZ')
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(File.objects.count(), 2)
+
+        self.upload_text(self.child)
+        duplicate = self.upload_text(self.child)
+        self.assertEqual(duplicate.status_code, 200)
+        self.assertEqual(File.objects.count(), 3)
+
+    def test_pdf_and_docx_content_are_accepted(self):
+        self.client.force_login(self.teacher)
+        pdf = SimpleUploadedFile('handout.pdf', b'%PDF-1.4\nexample', content_type='application/pdf')
+        response = self.client.post(reverse('library:file_upload', args=[self.child.pk]), {
+            'upload': pdf,
+        })
+        self.assertEqual(response.status_code, 302)
+
+        content = BytesIO()
+        with ZipFile(content, 'w') as archive:
             archive.writestr('[Content_Types].xml', '<Types/>')
             archive.writestr('word/document.xml', '<document/>')
-        samples = [
-            ('empty', b'', 'application/octet-stream'),
-            ('script.exe', b'MZ', 'application/octet-stream'),
-            ('fake.pdf', b'not a pdf', 'text/plain'),
-            ('handout.pdf', b'%PDF-1.4\nexample', 'application/pdf'),
-            ('handout.docx', docx.getvalue(),
-             'application/vnd.openxmlformats-officedocument.wordprocessingml.document'),
-        ]
-        url = reverse('library:file_upload', args=[self.child.pk])
-        for name, content, mime_type in samples:
-            with self.subTest(name=name):
-                upload = SimpleUploadedFile(name, content, content_type=mime_type)
-                self.assertEqual(self.client.post(url, {'upload': upload}).status_code, 302)
-                self.assertEqual(File.objects.get(folder=self.child, name=name).size, len(content))
+        docx = SimpleUploadedFile(
+            'handout.docx', content.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        )
+        response = self.client.post(reverse('library:file_upload', args=[self.child.pk]), {
+            'upload': docx,
+        })
 
-        duplicate = self.upload_text(self.child, 'fake.pdf')
-        self.assertEqual(duplicate.status_code, 200)
-        self.assertEqual(File.objects.count(), len(samples))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(File.objects.count(), 2)
 
     def test_rename_extension_and_move_collision_are_rejected(self):
         self.client.force_login(self.teacher)
@@ -407,7 +362,7 @@ class SearchTests(TestCase):
                     f'/file/{self.math_file.pk}/tags/']:
             self.assertEqual(self.client.get(url).status_code, 404)
             self.assertEqual(self.client.post(url, {}).status_code, 404)
-        for url in ['/library/', reverse('library:file', args=[self.math_file.pk]), reverse('library:search')]:
+        for url in ['/', reverse('library:file', args=[self.math_file.pk]), reverse('library:search')]:
             self.assertNotContains(self.client.get(url), '标签')
 
     def test_search_files_are_paginated(self):
@@ -431,14 +386,3 @@ class SearchTests(TestCase):
         self.assertEqual(self.client.get(reverse('library:search'), {
             'subject': self.functions.pk,
         }).status_code, 404)
-
-    def test_landing_welcome_after_login_shows_once(self):
-        response = self.client.post(
-            reverse('accounts:login'),
-            {'username': 'student', 'password': 'student-password'},
-            follow=True,
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'data-landing-welcome')
-        again = self.client.get(reverse('library:landing'))
-        self.assertNotContains(again, 'data-landing-welcome')

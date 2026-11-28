@@ -1,8 +1,4 @@
 """Consistent folder-first ordering and sort controls for library views."""
-
-FOLDER_ORDER = ('position', 'pk')
-
-
 def sort_options(request):
     column = request.GET.get('sort', 'date')
     if column not in {'name', 'date'}:

@@ -11,8 +11,8 @@ from django.test import Client, TestCase
 from django.urls import reverse
 
 from library.models import File, Folder
-from accounts.management.commands.sync_accounts import read_roster
-from accounts.models import PermissionGroup, User
+from .management.commands.sync_accounts import read_roster
+from .models import PermissionGroup, User
 
 
 class IdentityTests(TestCase):
@@ -85,14 +85,6 @@ class IdentityTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertNotIn('wrong-keep', response.content.decode())
 
-    def test_login_ignores_external_redirect(self):
-        response = self.client.post(
-            reverse('accounts:login') + '?next=https://example.invalid/',
-            {'username': self.user.username, 'password': 'old-secret-123'},
-            HTTP_X_LOGIN_FORM='1',
-        )
-        self.assertEqual(response.json()['redirect'], '/')
-
 
 class AdministrationTests(TestCase):
     def setUp(self):
@@ -124,19 +116,14 @@ class AdministrationTests(TestCase):
         self.assertTrue(user.check_password('new-manager'))
         self.assertEqual(user.role, 'admin')
 
-    def test_explicit_new_password_requires_at_least_eight_characters(self):
+    def test_explicit_new_password_is_validated_against_submitted_id(self):
         response = self.client.post(reverse('accounts:create'), {
-            'username': 'student-b', 'nickname': '新人', 'permission_group': self.student.permission_group_id,
-            'new_password1': 'short', 'new_password2': 'short',
+            'username': 'long-unique-id', 'nickname': '新人', 'permission_group': self.student.permission_group_id,
+            'new_password1': 'long-unique-id', 'new_password2': 'long-unique-id',
         })
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.context['form'].errors.get('new_password1'))
-        self.assertFalse(User.objects.filter(username='student-b').exists())
-        ok = self.client.post(reverse('accounts:create'), {
-            'username': 'student-b', 'nickname': '新人', 'permission_group': self.student.permission_group_id,
-            'new_password1': '12345678', 'new_password2': '12345678',
-        })
-        self.assertRedirects(ok, reverse('accounts:list'))
+        self.assertFalse(User.objects.filter(username='long-unique-id').exists())
 
     def test_bulk_reset_is_limited_to_selection_and_invalidates_old_session(self):
         member_client = Client()
@@ -340,7 +327,6 @@ class RosterTests(TestCase):
         with patch.object(Path, 'read_text', return_value=ROSTER):
             rows = read_roster(Path('unused'), 'production')
             self.assertEqual({row[0] for row in rows}, {'root', 'fixture-student-a'})
-        with patch('accounts.management.commands.sync_accounts.settings') as command_settings:
-            command_settings.DATABASES = {'default': {'ENGINE': 'django.db.backends.postgresql'}}
+        with self.settings(DATABASES={'default': {'ENGINE': 'django.db.backends.postgresql'}}):
             with self.assertRaises(CommandError):
                 call_command('sync_accounts', 'unused', environment='local', replace=True, stdout=StringIO())
