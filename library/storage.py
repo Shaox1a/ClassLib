@@ -7,6 +7,8 @@ from urllib.request import Request, urlopen
 
 from django.conf import settings
 from django.core.files.storage import FileSystemStorage
+from . import kodo
+from botocore.exceptions import ClientError
 
 
 def _local():
@@ -39,6 +41,8 @@ def signed_upload(key):
 
 
 def signed_download(key, filename):
+    if settings.KODO_BUCKET:
+        return kodo.download_url(key, filename)
     url = _sign(key, 'sign/', {'expiresIn': 60}, 'signedURL')
     return url + '&download=' + quote(filename, safe='')
 
@@ -60,6 +64,9 @@ def copy_object(source, destination):
 
 def save(key, uploaded_file):
     uploaded_file.seek(0)
+    if settings.KODO_BUCKET:
+        kodo.client().upload_fileobj(uploaded_file, settings.KODO_BUCKET, key)
+        return key
     if not settings.SUPABASE_URL:
         return _local().save(key, uploaded_file)
     request = _request(key, 'POST', uploaded_file)
@@ -69,6 +76,9 @@ def save(key, uploaded_file):
 
 
 def delete(key):
+    if settings.KODO_BUCKET:
+        kodo.client().delete_object(**kodo.address(key))
+        return
     if not settings.SUPABASE_URL:
         return _local().delete(key)
     try:
@@ -80,6 +90,13 @@ def delete(key):
 
 
 def open_file(key):
+    if settings.KODO_BUCKET:
+        try:
+            return kodo.client().get_object(**kodo.address(key))['Body']
+        except ClientError as exc:
+            if exc.response['ResponseMetadata']['HTTPStatusCode'] == 404:
+                raise FileNotFoundError(key) from exc
+            raise OSError('KODO read failed') from exc
     if not settings.SUPABASE_URL:
         return _local().open(key, 'rb')
     try:

@@ -6,19 +6,19 @@
 
 1.2.0 新增：固定 ID + 唯一昵称 + 密码哈希 + 可编辑权限组，支持 ID/昵称登录、个人账户信息、管理员批量操作与权限组管理；文件夹内支持多选后批量移动、删除。窄屏工具栏分组换行，静态资源使用内容版本号防止旧缓存。清单和迁移规则见 [账户与权限组](docs/accounts.md)。
 
-1.1.0 新增：允许任意文件类型且不设应用层大小上限、多文件上传、详细信息列表，以及登录失败时在当前页面保留密码输入。列表包含名称、上传日期、类型、大小和上传者；名称和上传日期支持正倒序，默认最新上传优先，文件夹始终排在文件前面。大图标使用三列等尺寸卡片。大文件采用流式/分块处理，生产存储仍受 Supabase 套餐上限约束。具体交互和验收标准见 [1.1.0 优化方案](docs/1.1.0-plan.md)。
+1.1.0 新增：允许任意文件类型且不设应用层大小上限、多文件上传、详细信息列表，以及登录失败时在当前页面保留密码输入。列表包含名称、上传日期、类型、大小和上传者；名称和上传日期支持正倒序，默认最新上传优先，文件夹始终排在文件前面。大图标使用三列等尺寸卡片。大文件采用流式/分块处理，实际容量由存储服务的配额决定。具体交互和验收标准见 [1.1.0 优化方案](docs/1.1.0-plan.md)。
 
 从旧版本升级时，先备份，准备待发布构建，再执行数据库迁移并切换生产流量。1.2.0 账户清单的切换规则见 [账户与权限组](docs/accounts.md)；`scripts/upgrade_release.py` 仅适用于历史标签清理，不用于此次账户升级。本地使用 `python manage.py migrate`。历史迁移文件必须保留。`python scripts/audit_secrets.py` 检查密钥忽略规则和 Git 历史，`python scripts/smoke_production.py` 验证生产功能并自动清理临时测试数据。
 
-ClassLib 是面向班级内部的私有学习资料库。项目分为 Django 主体和存储层：主体负责账号、权限、页面和元数据；存储层在本地使用 SQLite 与私有目录，在生产环境使用 Supabase Postgres 与私有 Storage bucket。
+ClassLib 是面向班级内部的私有学习资料库。Django 负责账号、权限、页面和元数据。本地使用 SQLite 与私有文件目录，生产使用 Vercel Marketplace 的 Neon PostgreSQL 和七牛 KODO 私有空间。
 
-生产部署：在 Supabase 建立私有 bucket `classlib-private`；在 Vercel 配置 `DATABASE_URL`、`SUPABASE_URL`、`SUPABASE_SERVICE_ROLE_KEY`、`DJANGO_SECRET_KEY`、`DJANGO_DEBUG=0`、`DJANGO_ALLOWED_HOSTS` 和必要时的 `DJANGO_CSRF_TRUSTED_ORIGINS`。服务密钥只放在服务端环境变量中。
+在 Vercel 生产环境设置 Neon 的 `DATABASE_URL`、七牛的 `KODO_BUCKET`、`KODO_REGION`、`KODO_ACCESS_KEY` 和 `KODO_SECRET_KEY`，以及 Django 的 `DJANGO_SECRET_KEY`、`DJANGO_DEBUG=0`、`DJANGO_ALLOWED_HOSTS`。需要额外信任的来源可通过 `DJANGO_CSRF_TRUSTED_ORIGINS` 配置。ClassLib 使用 PostgreSQL 的 `classlib` schema 和七牛华东浙江（`cn-east-1`）的 `class-lib` 私有空间。
 
-首次迁移现有本地资料时，在本地 `.env` 填好连接信息，依次执行 `python scripts/deploy_data.py verify`、`export`、`migrate`、`files`、`audit`。`migrate` 会建立不向 Data API 开放的 `classlib` schema，导入账号和资料元数据并开启 RLS；`files` 上传原有文件并校验 SHA-256。目标已有业务数据时会拒绝再次导入。导出文件存于被 Git 和 Vercel 排除的 `deploy-private/`。后续普通结构迁移使用同一数据库连接执行 `python manage.py migrate`，新表同样应启用 RLS。
+已有站点迁移到 Neon 时，复制整个 `classlib` schema，包括约束、索引、账号密码哈希和序列。文件按数据库记录里的存储键复制，切换流量前逐个比对 SHA-256。后续结构升级使用同一数据库连接执行 `python manage.py migrate`。历史 Supabase 导入工具为 `scripts/deploy_data.py`。
 
-云端上传使用临时签名凭据，由浏览器直传 Supabase 的 `pending/` 路径；大于 6 MiB 的文件采用 TUS 分块上传，重试时恢复服务端偏移。Django 仅核对实际存储大小，再通过存储端复制整理最终对象并登记元数据，不下载完整文件进行确认。bucket 的 `file_size_limit` 和 `allowed_mime_types` 均应设为 `null`。Supabase 项目全局及套餐仍可能限制实际文件大小，分块上传不会绕过平台限制。下载经 Django 鉴权后跳转至有效期 60 秒的私有签名链接，避免文件流量受到 Vercel 请求体限制。上传中断后遗留的 `pending/` 对象不会出现在资料列表，可在签名失效后清理（至少等待 24 小时，并确认不存在活动上传）。
+云端上传由 Django 验证用户权限，并为每个文件分片签发临时 PUT 地址。浏览器将文件直传七牛；Django 核对分片和总大小，完成合并后登记文件。空间的跨域规则应允许正式站来源发起 PUT，允许 Content-Type 请求头。下载先验证权限，再返回有效期 60 秒的签名链接。
 
-`SUPABASE_SERVICE_ROLE_KEY` 同时兼容新版 `sb_secret_` Secret key 与旧版 service_role JWT。Vercel 环境缺少必要配置时会停止启动，避免意外使用开发数据库或默认密钥。
+七牛密钥放在服务端，权限限定到班级的私有空间。
 
 暂不使用 Docker 时，请按 [START.md](START.md) 启动网站。
 

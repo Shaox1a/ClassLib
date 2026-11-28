@@ -30,9 +30,16 @@ SECRET_KEY = os.getenv(
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DJANGO_DEBUG', '1').lower() in {'1', 'true', 'yes', 'on'}
+KODO_BUCKET = os.getenv('KODO_BUCKET', '').strip()
+KODO_ACCESS_KEY = os.getenv('KODO_ACCESS_KEY', '').strip()
+KODO_SECRET_KEY = os.getenv('KODO_SECRET_KEY', '').strip()
+KODO_REGION = os.getenv('KODO_REGION', 'cn-east-1').strip()
+if KODO_BUCKET and not (KODO_ACCESS_KEY and KODO_SECRET_KEY):
+    raise ImproperlyConfigured('KODO_BUCKET requires KODO_ACCESS_KEY and KODO_SECRET_KEY')
 if os.getenv('VERCEL'):
-    required = ('DATABASE_URL', 'SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY',
-                'DJANGO_SECRET_KEY', 'DJANGO_ALLOWED_HOSTS')
+    required = ('DATABASE_URL', 'DJANGO_SECRET_KEY', 'DJANGO_ALLOWED_HOSTS')
+    if not KODO_BUCKET:
+        required += ('SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY')
     missing = [name for name in required if not os.getenv(name, '').strip()]
     if missing:
         raise ImproperlyConfigured('Missing production settings: ' + ', '.join(missing))

@@ -42,7 +42,7 @@ def edit_page(request, *, title, form, back_url, submit_label='保存', is_uploa
         'back_url': back_url,
         'submit_label': submit_label,
         'is_upload': is_upload,
-        'direct_upload': is_upload and bool(settings.SUPABASE_URL),
+        'direct_upload': is_upload and bool(settings.KODO_BUCKET or settings.SUPABASE_URL),
     })
 
 
@@ -261,7 +261,7 @@ def file_preview(request, file_id):
 @library_permission_required('download')
 def file_download(request, file_id):
     document = get_object_or_404(File, pk=file_id)
-    if settings.SUPABASE_URL:
+    if settings.KODO_BUCKET or settings.SUPABASE_URL:
         response = redirect(storage.signed_download(document.storage_key, document.name))
         response['Cache-Control'] = 'private, no-store'
         response['Referrer-Policy'] = 'no-referrer'

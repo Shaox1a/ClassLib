@@ -26,7 +26,19 @@
   async function authorize(item) {
     const values = item.auth ? {ticket: item.auth.ticket} : {name: item.file.name, size: item.file.size};
     item.auth = await post('begin/', new URLSearchParams(values));
-    return new URL(item.auth.url).searchParams.get('token');
+  }
+  async function uploadKodo(item) {
+    const size = item.auth.partSize;
+    for (let offset = item.offset || 0; offset < item.file.size; offset += size) {
+      const part = Math.floor(offset / size) + 1;
+      const {url} = await post('begin/', new URLSearchParams({ticket: item.auth.ticket, part}));
+      const end = Math.min(offset + size, item.file.size);
+      const response = await fetch(url, {method: 'PUT', body: item.file.slice(offset, end),
+        credentials: 'omit', referrerPolicy: 'no-referrer'});
+      if (!response.ok) throw new Error(`分片上传中断 (${response.status})，可点击重试。`);
+      item.offset = end;
+      show(item, `上传中 ${Math.round(end / item.file.size * 100)}%`);
+    }
   }
   async function tus(item, token) {
     const headers = {'Tus-Resumable': '1.0.0', 'x-signature': token};
@@ -66,8 +78,9 @@
       await post('', data, {'X-Upload-Id': item.id}); return;
     }
     if (item.confirming) { await post('finish/', new URLSearchParams({ticket: item.auth.ticket})); return; }
-    const token = await authorize(item);
-    if (item.file.size > 6 * 1024 * 1024) await tus(item, token);
+    await authorize(item);
+    if (item.auth.provider === 'kodo') await uploadKodo(item);
+    else if (item.file.size > 6 * 1024 * 1024) await tus(item, new URL(item.auth.url).searchParams.get('token'));
     else {
       const response = await fetch(item.auth.url, {method: 'PUT', headers: {'Content-Type': 'application/octet-stream'}, body: item.file});
       if (!response.ok && response.status !== 409 && response.status !== 400) throw new Error(`存储拒绝上传 (${response.status})，请重试。`);
