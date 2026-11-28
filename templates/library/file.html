@@ -8,9 +8,44 @@
     {% for item in breadcrumbs %} / <a href="{% url 'library:folder' item.pk %}">{{ item.name }}</a>{% endfor %}
     / {{ document.name }}
 </nav>
-<section class="detail-card">
-    <p class="eyebrow">文件详情</p>
-    <h1>{{ document.name }}</h1>
+<section class="file-preview-card detail-card">
+    <div class="file-preview-header">
+        <h1>{{ document.name }}</h1>
+        <div class="action-bar file-preview-actions">
+            {% if can_download %}
+                <a class="button" href="{% url 'library:file_download' document.pk %}">下载文件</a>
+            {% endif %}
+            {% if can_manage %}
+                <a href="{% url 'library:file_rename' document.pk %}">重命名</a>
+                <a href="{% url 'library:file_move' document.pk %}">移动</a>
+                <a class="danger-link" href="{% url 'library:file_delete' document.pk %}">删除</a>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if can_download and preview_kind != 'none' %}
+        <div class="file-preview-frame" data-preview-kind="{{ preview_kind }}">
+            {% if preview_kind == 'image' %}
+                <img src="{% url 'library:file_preview' document.pk %}" alt="{{ document.name }}" loading="lazy">
+            {% elif preview_kind == 'pdf' %}
+                <embed class="file-preview-pdf" src="{% url 'library:file_preview' document.pk %}" type="application/pdf">
+            {% elif preview_kind == 'text' %}
+                <iframe sandbox src="{% url 'library:file_preview' document.pk %}" title="{{ document.name }}"></iframe>
+            {% elif preview_kind == 'video' %}
+                <video controls preload="metadata" src="{% url 'library:file_preview' document.pk %}"></video>
+            {% elif preview_kind == 'audio' %}
+                <audio controls preload="metadata" src="{% url 'library:file_preview' document.pk %}"></audio>
+            {% endif %}
+        </div>
+    {% elif can_download %}
+        <div class="file-preview-unavailable">
+            <p>此类型暂不支持在线预览，请下载后查看。</p>
+            {% if can_download %}
+                <a class="button" href="{% url 'library:file_download' document.pk %}">下载文件</a>
+            {% endif %}
+        </div>
+    {% endif %}
+
     <dl class="file-meta">
         <div><dt>大小</dt><dd>{{ document.size|filesizeformat }}</dd></div>
         <div><dt>类型</dt><dd>{{ document.mime_type }}</dd></div>
@@ -18,13 +53,5 @@
         <div><dt>上传时间</dt><dd>{{ document.created_at|date:"Y-m-d H:i" }}</dd></div>
         <div><dt>更新时间</dt><dd>{{ document.updated_at|date:"Y-m-d H:i" }}</dd></div>
     </dl>
-    <div class="action-bar">
-        {% if can_download %}<a class="button" href="{% url 'library:file_download' document.pk %}">下载文件</a>{% endif %}
-        {% if can_manage %}
-            <a href="{% url 'library:file_rename' document.pk %}">重命名</a>
-            <a href="{% url 'library:file_move' document.pk %}">移动</a>
-            <a class="danger-link" href="{% url 'library:file_delete' document.pk %}">删除</a>
-        {% endif %}
-    </div>
 </section>
 {% endblock %}

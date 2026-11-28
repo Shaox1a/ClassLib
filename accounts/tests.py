@@ -24,7 +24,7 @@ class AuthenticationPageTests(TestCase):
             {'username': 'student', 'password': 'safe-password'},
         )
 
-        self.assertRedirects(response, reverse('library:home'))
+        self.assertRedirects(response, reverse('library:landing'))
 
     def test_disabled_user_cannot_log_in(self):
         User.objects.create_user(username='disabled', password='safe-password', is_active=False)

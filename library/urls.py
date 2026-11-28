@@ -8,10 +8,13 @@ from . import direct_upload
 app_name = 'library'
 
 urlpatterns = [
-    path('', views.home, name='home'),
+    path('', views.landing, name='landing'),
+    path('library/', views.home, name='home'),
     path('folder/new/', views.folder_create, name='folder_create_root'),
     path('folder/<int:folder_id>/', views.folder_detail, name='folder'),
     path('folder/<int:parent_id>/new/', views.folder_create, name='folder_create_child'),
+    path('folder/reorder/', views.folder_reorder_set, name='folder_reorder_set'),
+    path('folder/<int:folder_id>/reorder/', views.folder_reorder, name='folder_reorder'),
     path('folder/<int:folder_id>/rename/', views.folder_rename, name='folder_rename'),
     path('folder/<int:folder_id>/move/', views.folder_move, name='folder_move'),
     path('folder/<int:folder_id>/bulk/', folder_bulk, name='folder_bulk'),
@@ -20,6 +23,7 @@ urlpatterns = [
     path('folder/<int:folder_id>/upload/begin/', direct_upload.begin, name='upload_begin'),
     path('folder/<int:folder_id>/upload/finish/', direct_upload.finish, name='upload_finish'),
     path('file/<int:file_id>/', views.file_detail, name='file'),
+    path('file/<int:file_id>/preview/', views.file_preview, name='file_preview'),
     path('file/<int:file_id>/download/', views.file_download, name='file_download'),
     path('file/<int:file_id>/rename/', views.file_rename, name='file_rename'),
     path('file/<int:file_id>/move/', views.file_move, name='file_move'),

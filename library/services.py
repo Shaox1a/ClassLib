@@ -25,6 +25,22 @@ def mime_type_for(name):
     return mimetypes.guess_type(name)[0] or 'application/octet-stream'
 
 
+def preview_format(name, mime_type):
+    mime = (mime_type or '').partition(';')[0].strip().lower()
+    if mime in {'', 'application/octet-stream'}:
+        mime = mime_type_for(name)
+    if mime.startswith('text/') or mime in {
+        'application/json', 'application/xml', 'application/javascript', 'image/svg+xml',
+    } or PurePosixPath(name).suffix.lower() in {'.md', '.log', '.txt', '.js', '.csv'}:
+        return 'text', 'text/plain; charset=utf-8'
+    if mime == 'application/pdf':
+        return 'pdf', mime
+    family = mime.partition('/')[0]
+    if family in {'image', 'video', 'audio'}:
+        return family, mime
+    return 'none', None
+
+
 def create_file(*, folder, uploaded_file, name, uploader, storage_key=None):
     extension = PurePosixPath(name).suffix.lower()
     key = storage.save(storage_key, uploaded_file) if storage_key else save_upload(uploaded_file, extension)
